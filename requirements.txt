@@ -1,0 +1,25 @@
+# Data Science & Analytics
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+xgboost>=1.7.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Development & Notebooks
+jupyterlab>=4.0.0
+ipykernel>=6.20.0
+
+# API & Web Framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Testing & Linting
+pytest>=7.3.0
+httpx>=0.24.0
+ruff>=0.0.270
