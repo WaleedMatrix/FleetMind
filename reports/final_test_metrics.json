@@ -1,0 +1,91 @@
+{
+  "model_name": "XGBoost + Thermal Gap",
+  "model_version": "xgboost_v1",
+  "dataset": "AI4I 2020",
+  "use_thermal_gap": true,
+  "primary_metric": "average_precision",
+  "training_observations": 8000,
+  "test_observations": 2000,
+  "training_failures": 271,
+  "test_failures": 68,
+  "scale_pos_weight": 28.52029520295203,
+  "average_precision": 0.8654788810070985,
+  "threshold_configuration": {
+    "review": 0.3,
+    "primary": 0.5,
+    "high_priority": 0.6
+  },
+  "primary_threshold_results": {
+    "threshold": 0.5,
+    "accuracy": 0.9745,
+    "precision": 0.5841584158415841,
+    "recall": 0.8676470588235294,
+    "f1": 0.6982248520710059,
+    "TP": 59,
+    "FP": 42,
+    "FN": 9,
+    "TN": 1890,
+    "alerts": 101
+  },
+  "threshold_results": [
+    {
+      "threshold": 0.3,
+      "accuracy": 0.9635,
+      "precision": 0.4806201550387597,
+      "recall": 0.9117647058823529,
+      "f1": 0.6294416243654822,
+      "TP": 62,
+      "FP": 67,
+      "FN": 6,
+      "TN": 1865,
+      "alerts": 129
+    },
+    {
+      "threshold": 0.5,
+      "accuracy": 0.9745,
+      "precision": 0.5841584158415841,
+      "recall": 0.8676470588235294,
+      "f1": 0.6982248520710059,
+      "TP": 59,
+      "FP": 42,
+      "FN": 9,
+      "TN": 1890,
+      "alerts": 101
+    },
+    {
+      "threshold": 0.6,
+      "accuracy": 0.9795,
+      "precision": 0.6483516483516484,
+      "recall": 0.8676470588235294,
+      "f1": 0.7421383647798742,
+      "TP": 59,
+      "FP": 32,
+      "FN": 9,
+      "TN": 1900,
+      "alerts": 91
+    }
+  ],
+  "alert_tiers": [
+    {
+      "tier": "High priority",
+      "observations": 91,
+      "actual_failures": 59,
+      "normal_observations": 32,
+      "failure_rate": 0.6483516483516484
+    },
+    {
+      "tier": "Review",
+      "observations": 38,
+      "actual_failures": 3,
+      "normal_observations": 35,
+      "failure_rate": 0.07894736842105263
+    },
+    {
+      "tier": "No alert",
+      "observations": 1871,
+      "actual_failures": 6,
+      "normal_observations": 1865,
+      "failure_rate": 0.003206841261357563
+    }
+  ]
+}
