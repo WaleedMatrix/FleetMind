@@ -15,11 +15,13 @@ from fleetmind.api.inference import (
 )
 from fleetmind.api.schemas import (
     DashboardSummaryResponse,
+    DashboardTrendsResponse,
     MachineReading,
     PredictionHistoryResponse,
     PredictionResponse,
 )
 from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
+from fleetmind.db.analytics import get_prediction_trends
 from fleetmind.db.database import get_db
 from fleetmind.db.models import PredictionHistory
 
@@ -214,4 +216,31 @@ def dashboard_summary(db: DBSession):
         average_failure_score=(
             float(average_score) if average_score is not None else 0.0
         ),
+    )
+
+
+@app.get(
+    "/api/v1/dashboard/trends",
+    response_model=DashboardTrendsResponse,
+)
+def dashboard_trends(
+    db: DBSession,
+    interval: str = "hour",
+):
+    """Return hourly or daily prediction trends."""
+
+    if interval not in {"hour", "day"}:
+        raise HTTPException(
+            status_code=422,
+            detail="interval must be 'hour' or 'day'",
+        )
+
+    points = get_prediction_trends(
+        db=db,
+        interval=interval,
+    )
+
+    return DashboardTrendsResponse(
+        interval=interval,
+        points=points,
     )

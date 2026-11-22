@@ -62,3 +62,21 @@ class DashboardSummaryResponse(BaseModel):
     review_alerts: int = Field(ge=0)
     no_alert_predictions: int = Field(ge=0)
     average_failure_score: float = Field(ge=0, le=1)
+
+
+class TrendPoint(BaseModel):
+    """Aggregated prediction metrics for a time bucket."""
+
+    timestamp: datetime
+    total_predictions: int = Field(ge=0)
+    high_priority_alerts: int = Field(ge=0)
+    review_alerts: int = Field(ge=0)
+    no_alert_predictions: int = Field(ge=0)
+    average_failure_score: float = Field(ge=0, le=1)
+
+
+class DashboardTrendsResponse(BaseModel):
+    """Time-series data for the monitoring dashboard."""
+
+    interval: Literal["hour", "day"]
+    points: list[TrendPoint]
