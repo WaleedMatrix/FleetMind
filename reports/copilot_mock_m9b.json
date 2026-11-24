@@ -1,0 +1,724 @@
+{
+  "provider_mode": "scripted_mock",
+  "tool_metric": "scripted control-path adherence",
+  "cases": 51,
+  "abstention_status_accuracy": 1,
+  "rates": {
+    "status_ok": 1,
+    "tool_selection_ok": 1,
+    "citation_integrity": 1,
+    "answer_check": 1
+  },
+  "mean_per_case_tool_argument_validity": 0.9387755102040817,
+  "latency_ms": {
+    "p50": 25.798,
+    "p95": 46.802
+  },
+  "token_usage": null,
+  "failures": [],
+  "per_case": [
+    {
+      "id": "a01",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 46.116,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "a02",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 190.478,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "a03",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 24.65,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "a04",
+      "status": "clarification_required",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 19.65,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "a05",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 22.755,
+      "tokens": null,
+      "issues": [
+        "record_not_found"
+      ]
+    },
+    {
+      "id": "a06",
+      "status": "clarification_required",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 20.008,
+      "tokens": null,
+      "issues": [
+        "asset_id_required"
+      ]
+    },
+    {
+      "id": "a07",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 24.131,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "a08",
+      "status": "clarification_required",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 3.794,
+      "tokens": null,
+      "issues": [
+        "record_not_found"
+      ]
+    },
+    {
+      "id": "p01",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 31.858,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p02",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 19.281,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p03",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 25.562,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p04",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 44.601,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p05",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 33.613,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p06",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 49.969,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p07",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 46.477,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "p08",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 21.208,
+      "tokens": null,
+      "issues": [
+        "model_version_unavailable"
+      ]
+    },
+    {
+      "id": "p09",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 27.717,
+      "tokens": null,
+      "issues": [
+        "prediction_not_found_in_scope"
+      ]
+    },
+    {
+      "id": "p10",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 25.798,
+      "tokens": null,
+      "issues": [
+        "prediction_not_found_in_scope"
+      ]
+    },
+    {
+      "id": "t01",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 35.906,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "t02",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 43.724,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "t03",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 35.688,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "t04",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 29.0,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "t05",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 32.264,
+      "tokens": null,
+      "issues": [
+        "prediction_not_found_in_scope"
+      ]
+    },
+    {
+      "id": "t06",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 25.75,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "t07",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 26.825,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k01",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 29.11,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k02",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 34.699,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k03",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 33.958,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k04",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 43.076,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k05",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 46.802,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k06",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 31.999,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k07",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 19.313,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k08",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 29.9,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "k09",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 37.039,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "o01",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 33.996,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "o02",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 30.427,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "o03",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 31.342,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "f01",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 0.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 17.644,
+      "tokens": null,
+      "issues": [
+        "invalid_tool_arguments"
+      ]
+    },
+    {
+      "id": "f02",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 0.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 17.903,
+      "tokens": null,
+      "issues": [
+        "unknown_tool"
+      ]
+    },
+    {
+      "id": "f03",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 23.416,
+      "tokens": null,
+      "issues": [
+        "invalid_citation"
+      ]
+    },
+    {
+      "id": "f04",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 23.533,
+      "tokens": null,
+      "issues": [
+        "invalid_final_response"
+      ]
+    },
+    {
+      "id": "f05",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 18.362,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "f06",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 21.398,
+      "tokens": null,
+      "issues": [
+        "tool_timeout"
+      ]
+    },
+    {
+      "id": "f07",
+      "status": "unavailable",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": null,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 14.889,
+      "tokens": null,
+      "issues": [
+        "provider_timeout"
+      ]
+    },
+    {
+      "id": "f08",
+      "status": "unavailable",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": null,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 17.127,
+      "tokens": null,
+      "issues": [
+        "request_deadline"
+      ]
+    },
+    {
+      "id": "f09",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 19.192,
+      "tokens": null,
+      "issues": [
+        "tool_budget_exceeded",
+        "duplicate_tool_call"
+      ]
+    },
+    {
+      "id": "f10",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 16.419,
+      "tokens": null,
+      "issues": [
+        "duplicate_tool_call"
+      ]
+    },
+    {
+      "id": "f11",
+      "status": "answered",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": false,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 20.258,
+      "tokens": null,
+      "issues": []
+    },
+    {
+      "id": "f12",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 13.35,
+      "tokens": null,
+      "issues": [
+        "final_tool_calls_rejected"
+      ]
+    },
+    {
+      "id": "f13",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 0.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 16.762,
+      "tokens": null,
+      "issues": [
+        "invalid_tool_arguments"
+      ]
+    },
+    {
+      "id": "f14",
+      "status": "insufficient_evidence",
+      "status_ok": true,
+      "tool_selection_ok": true,
+      "expected_abstention": true,
+      "tool_argument_validity": 1.0,
+      "citation_integrity": true,
+      "answer_check": true,
+      "elapsed_ms": 24.925,
+      "tokens": null,
+      "issues": [
+        "asset_outside_selected_context"
+      ]
+    }
+  ],
+  "dataset_sha256": "9d8e1998cebd864970a8107cb178334c281a3bde9190eb4946fddbbb3c6fd2b7"
+}

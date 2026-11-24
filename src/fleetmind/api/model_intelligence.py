@@ -220,12 +220,21 @@ def explain_prediction(
     record = db.get(PredictionHistory, prediction_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Prediction not found.")
-    if record.model_version != request.app.state.model_version:
+    return explain_record(
+        record, request.app.state.model_version, request.app.state.explainer
+    )
+
+
+def explain_record(
+    record: PredictionHistory,
+    model_version: str,
+    explainer: ModelExplainer | None,
+) -> ExplanationResponse:
+    if record.model_version != model_version:
         raise HTTPException(
             status_code=409,
             detail=f"Model {record.model_version} is unavailable for explanation.",
         )
-    explainer: ModelExplainer | None = request.app.state.explainer
     if explainer is None:
         raise HTTPException(
             status_code=503, detail="The model explainer is unavailable."
@@ -269,7 +278,7 @@ def explain_prediction(
             features=features,
         )
     except Exception as exc:
-        logger.exception("Unable to explain prediction %d", prediction_id)
+        logger.exception("Unable to explain prediction %d", record.id)
         raise HTTPException(
             status_code=503,
             detail="An explanation could not be verified for this saved prediction.",

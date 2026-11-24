@@ -2,15 +2,18 @@ from alembic import context
 
 from fleetmind.db.database import engine
 from fleetmind.db.models import Base
+from fleetmind.knowledge.models import KnowledgeBase
+
+metadata = [Base.metadata, KnowledgeBase.metadata]
 
 if context.is_offline_mode():
-    context.configure(url=engine.url, target_metadata=Base.metadata, literal_binds=True)
+    context.configure(url=engine.url, target_metadata=metadata, literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()
 else:
 
     def run_migrations(connection):
-        context.configure(connection=connection, target_metadata=Base.metadata)
+        context.configure(connection=connection, target_metadata=metadata)
         with context.begin_transaction():
             context.run_migrations()
 

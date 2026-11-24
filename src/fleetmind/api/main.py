@@ -10,11 +10,13 @@ from sqlalchemy import func, select
 
 from fleetmind.api.assets import get_asset_or_404
 from fleetmind.api.assets import router as assets_router
+from fleetmind.api.copilot import router as copilot_router
 from fleetmind.api.dependencies import DBSession
 from fleetmind.api.inference import (
     classify_alert,
     to_model_frame,
 )
+from fleetmind.api.knowledge import router as knowledge_router
 from fleetmind.api.model_intelligence import load_model_intelligence
 from fleetmind.api.model_intelligence import router as model_router
 from fleetmind.api.schemas import (
@@ -76,6 +78,8 @@ app = FastAPI(
 )
 app.include_router(assets_router)
 app.include_router(model_router)
+app.include_router(knowledge_router)
+app.include_router(copilot_router)
 
 
 @app.get("/health")
