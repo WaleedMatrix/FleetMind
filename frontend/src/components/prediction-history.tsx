@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Database, Loader2, ScanLine, Wrench } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Database, Loader2, ScanLine, Sparkles, Wrench } from "lucide-react";
 import {
   ALERT_INFO, PREDICTIONS_PER_PAGE, predictionLabel, scoreText, timestampLabel,
   type AlertFilter, type Prediction, type PredictionPage,
@@ -45,6 +46,7 @@ export function PredictionHistory({
           </h3>
           <p>Open a prediction to review its original readings and model score.</p>
         </div>
+        <Link href="/copilot" className="copilot-link copilot-entry"><Sparkles size={15} aria-hidden="true" /> Copilot</Link>
       </div>
 
       <div className="alert-center-filters" role="group" aria-label="Filter predictions by alert level">

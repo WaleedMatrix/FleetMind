@@ -19,10 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
-    def __init__(self, provider, executor, settings):
+    def __init__(self, provider, executor, settings, on_event=None):
         self.provider = provider
         self.executor = executor
         self.settings = settings
+        self.on_event = on_event
+
+    def emit(self, kind, **details):
+        if self.on_event is not None:
+            self.on_event(kind, **details)
 
     async def chat(self, request, context):
         started = perf_counter()
@@ -51,13 +56,14 @@ class Orchestrator:
         return result
 
     async def _collect(self, request, context, diagnostics):
-        talk = start_messages(request)
+        talk = start_messages(request, context.prediction_id)
         evidence = Evidence()
         seen: set[tuple[str, str]] = set()
         if context.asset_id:
             diagnostics.tool_count += 1
             diagnostics.valid_tool_arguments += 1
             diagnostics.tool_names.append("get_asset")
+            self.emit("tool_started", tool="get_asset")
             try:
                 await self.executor.run(
                     REGISTRY["get_asset"],
@@ -65,7 +71,9 @@ class Orchestrator:
                     context,
                     self.settings.tool_timeout,
                 )
+                self.emit("tool_completed", tool="get_asset", outcome="ok")
             except ToolFailure as exc:
+                self.emit("tool_completed", tool="get_asset", outcome="error")
                 diagnostics.issues.append(str(exc))
                 if str(exc) == "record_not_found":
                     return response(
@@ -75,6 +83,7 @@ class Orchestrator:
                     )
                 return response("unavailable", diagnostics)
             except (SQLAlchemyError, ValidationError):
+                self.emit("tool_completed", tool="get_asset", outcome="error")
                 diagnostics.issues.append("asset_verification_failed")
                 return response("unavailable", diagnostics)
 
@@ -146,7 +155,9 @@ class Orchestrator:
                 else "insufficient_evidence"
             )
             return response(status, diagnostics)
-        final = await self._complete(final_messages(request, facts), None, diagnostics)
+        final = await self._complete(
+            final_messages(request, facts, context.prediction_id), None, diagnostics
+        )
         if final.calls:
             diagnostics.issues.append("final_tool_calls_rejected")
             return response("insufficient_evidence", diagnostics)
@@ -155,6 +166,7 @@ class Orchestrator:
     async def _invoke(self, call, context, evidence, seen, diagnostics):
         diagnostics.tool_count += 1
         tool = REGISTRY.get(call.name)
+        started = False
         diagnostics.tool_names.append(call.name if tool else "unknown")
         try:
             if tool is None:
@@ -169,6 +181,8 @@ class Orchestrator:
             if key in seen:
                 raise ToolFailure("duplicate_tool_call")
             seen.add(key)
+            started = True
+            self.emit("tool_started", tool=call.name)
             result = await self.executor.run(
                 tool, args, context, self.settings.tool_timeout
             )
@@ -176,6 +190,9 @@ class Orchestrator:
                 diagnostics.issues.append("knowledge_keyword_fallback")
             old = set(evidence.facts)
             evidence.ingest(call.name, result, args, context.asset_id)
+            self.emit("tool_completed", tool=call.name, outcome="ok")
+            if added := len(evidence.facts) - len(old):
+                self.emit("evidence", count=added)
             return {
                 "facts": [
                     {"id": key, "text": fact.text, "source": fact.citation.title}
@@ -195,4 +212,6 @@ class Orchestrator:
             logger.warning("Copilot tool failed (%s)", type(exc).__name__)
             issue = "tool_unavailable"
         diagnostics.issues.append(issue)
+        if started:
+            self.emit("tool_completed", tool=call.name, outcome="error")
         return {"error": issue}

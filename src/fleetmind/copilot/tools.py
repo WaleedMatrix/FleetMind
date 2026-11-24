@@ -82,6 +82,7 @@ class ToolContext:
     model_version: str
     explainer: ModelExplainer | None
     intelligence: ModelIntelligenceResponse | None
+    prediction_id: int | None = None
 
 
 class ToolFailure(RuntimeError):
@@ -133,7 +134,11 @@ def summary(db, args, context):
 
 def prediction(db, args, context):
     record = db.get(PredictionHistory, args.prediction_id)
-    if record is None or (context.asset_id and record.asset_id != context.asset_id):
+    if (
+        record is None
+        or (context.asset_id and record.asset_id != context.asset_id)
+        or (context.prediction_id and record.id != context.prediction_id)
+    ):
         raise ToolFailure("prediction_not_found_in_scope")
     return record
 

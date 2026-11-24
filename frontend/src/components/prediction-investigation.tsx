@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import Link from "next/link";
+import { copilotHref } from "@/lib/copilot";
 import { BrainCircuit, ClipboardCheck, Gauge, Layers, ScanLine, Thermometer, Timer, Wrench, X } from "lucide-react";
 import {
   ALERT_INFO, READING_SOURCES, predictionLabel, scoreText, timestampLabel, type AlertLevel, type Prediction,
@@ -119,6 +120,7 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
     dialog.showModal();
     dialog.scrollTop = 0;
     closeRef.current?.focus();
+    return () => dialog.close();
   }, [selection]);
 
   if (!selection) return null;
@@ -144,6 +146,8 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
         <div>
           <div className="alert-center-drawer-label"><ScanLine size={15} aria-hidden="true" /> Prediction investigation</div>
           <h2 id={titleId}>Assessment {predictionLabel(record.prediction_id)}</h2>
+          <Link href={copilotHref(record.asset_id, record.prediction_id)} className="copilot-link"
+            onNavigate={() => dialogRef.current?.close()}>Investigate with Copilot</Link>
         </div>
         <button
           ref={closeRef}

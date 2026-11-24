@@ -102,6 +102,14 @@ class ChatCompletionsProvider:
         raise ProviderError(failure)
 
 
+def make_provider(settings: Settings) -> Provider:
+    return (
+        MockProvider()
+        if settings.provider == "mock"
+        else ChatCompletionsProvider(settings)
+    )
+
+
 def parse_completion(body: bytes | bytearray) -> Completion:
     import json
 

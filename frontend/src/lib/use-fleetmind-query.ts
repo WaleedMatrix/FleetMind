@@ -7,11 +7,13 @@ type LoadState<T> = { path: string; data: T | null; error: string | null; status
 type QueryOptions = { pollMs?: number; delay?: number; revision?: number };
 
 export function useFleetMindQuery<T>(
-  path: string, { pollMs, delay = 0, revision = 0 }: QueryOptions = {},
+  path: string | null, { pollMs, delay = 0, revision = 0 }: QueryOptions = {},
 ) {
   const [state, setState] = useState<LoadState<T> | null>(null);
 
   useEffect(() => {
+    if (path === null) return;
+    const target = path;
     let request: AbortController | null = null;
 
     async function load() {
@@ -19,16 +21,16 @@ export function useFleetMindQuery<T>(
       const controller = new AbortController();
       request = controller;
       setState((previous) => ({
-        path, data: previous?.path === path ? previous.data : null, error: null, pending: true,
+        path: target, data: previous?.path === target ? previous.data : null, error: null, pending: true,
       }));
       try {
-        const data = await fleetMindRequest<T>(path, { signal: controller.signal });
-        if (!controller.signal.aborted) setState({ path, data, error: null, pending: false });
+        const data = await fleetMindRequest<T>(target, { signal: controller.signal });
+        if (!controller.signal.aborted) setState({ path: target, data, error: null, pending: false });
       } catch (error) {
         if (!controller.signal.aborted) {
           const message = error instanceof Error ? error.message : "Unable to reach FleetMind.";
           setState((previous) => ({
-            path, data: previous?.path === path ? previous.data : null, error: message,
+            path: target, data: previous?.path === target ? previous.data : null, error: message,
             status: error instanceof FleetMindApiError ? error.status : undefined, pending: false,
           }));
         }
@@ -46,5 +48,5 @@ export function useFleetMindQuery<T>(
     };
   }, [path, pollMs, delay, revision]);
 
-  return state?.path === path ? state : { data: null, error: null, status: undefined, pending: true };
+  return state?.path === path ? state : { data: null, error: null, status: undefined, pending: path !== null };
 }

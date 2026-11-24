@@ -80,6 +80,7 @@ export function ModelIntelligence() {
           <strong>FleetMind<span className="brand-dot">.</span></strong>
         </Link>
         <Link className="asset-home-link" href="/"><ArrowLeft size={16} aria-hidden="true" /> Command center</Link>
+        <Link href="/copilot" className="copilot-link">Ask Copilot</Link>
       </header>
       <main className="content-container model-content">
         <header className="model-hero">

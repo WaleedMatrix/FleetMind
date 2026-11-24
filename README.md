@@ -330,8 +330,8 @@ discarded. A citation establishes where the exact statement came from.
 Whether the material fully answers a question and whether a document is
 factually reliable still need review. User context and retrieved passages
 are untrusted, and suspicious instruction-like passages are excluded.
-Maintenance decisions require human confirmation. This phase is non-streaming
-and has no persistent conversation store.
+Maintenance decisions require human confirmation. The original chat endpoint
+returns a single structured response and does not write conversation history.
 
 ### Evaluation
 
@@ -374,3 +374,139 @@ process. An API smoke test with real MiniLM and disposable PostgreSQL resolved
 the thermal-gap citation in 18.39 seconds on a cold encoder, with a mocked
 provider transport. Live OpenAI-compatible and Ollama quality, latency, and
 token usage remain unverified.
+
+## Maintenance Copilot workspace
+
+Open `/copilot` from the dashboard, Alert Intelligence Center, an asset page,
+a prediction drawer, or Model Intelligence. Asset and prediction links carry
+the saved record IDs. Starting an investigation creates a conversation, and
+the URL can reopen that conversation. Use the history panel to search titles
+and saved messages or switch between active and archived conversations.
+
+### Apply the additive migration
+
+With the existing PostgreSQL 17 and pgvector development service running,
+confirm that `DATABASE_URL` points at the intended database, then run:
+
+```powershell
+python -m alembic current
+python -m alembic upgrade head
+python -m alembic check
+```
+
+Revision `0004_copilot_conversations` adds `copilot_conversations` and
+`copilot_messages`. It preserves existing assets, prediction history, and the
+knowledge index. Downgrading across this revision is disabled because it would
+discard saved conversations. Migration and concurrency tests use a disposable
+PostgreSQL database supplied as `FLEETMIND_MIGRATION_TEST_DATABASE_URL`.
+
+### Conversation API
+
+The following examples use a shell configured as in the provider section above.
+Use a registered asset ID or an existing, compatible prediction ID in the optional
+`asset_id` and `prediction_id` fields when creating or updating a conversation.
+
+```powershell
+$copilot = 'http://127.0.0.1:8000/api/v1/copilot/conversations'
+$thread = Invoke-RestMethod $copilot -Method Post -ContentType 'application/json' -Body '{"title":"Alert review"}'
+$id = $thread.id
+Invoke-RestMethod "${copilot}?q=alert&archived=false&limit=20&offset=0"
+Invoke-RestMethod "$copilot/$id"
+Invoke-RestMethod "$copilot/$id/messages?limit=25"
+Invoke-RestMethod "$copilot/$id" -Method Patch -ContentType 'application/json' -Body '{"title":"Day shift review","archived":false}'
+
+$requestId = [Guid]::NewGuid().ToString()
+$payload = @{ request_id = $requestId; question = 'How is the thermal gap calculated?' } | ConvertTo-Json -Compress
+# Pipe the body to curl to preserve JSON quotes in Windows PowerShell.
+$payload | curl.exe --no-buffer -H 'Content-Type: application/json' --data-binary '@-' "$copilot/$id/messages/stream"
+
+# Run in a separate terminal with the same conversation and request IDs.
+Invoke-RestMethod "$copilot/$id/requests/$requestId/cancel" -Method Post
+# Permanently deletes the conversation and messages only, after confirmation.
+Invoke-RestMethod "${copilot}/${id}?confirm=$id" -Method Delete
+```
+
+The list returns `next_offset` when another page exists. Messages are
+returned in chronological order within each page. Pass `next_before_id` as
+`before_id` to fetch older messages. Individual conversations have one active
+request. A completed request replays the saved answer when the same UUID and
+question are submitted again. A conflicting duplicate returns 409. Use a new
+UUID to retry a cancelled or failed request. Invalid scope references return
+422, missing conversations return 404, and storage failures return 503.
+The standalone `POST /api/v1/copilot/chat` contract remains available.
+
+### Streaming and cancellation
+
+The POST stream uses `text/event-stream`. Every event has a name and a JSON
+`data` object with matching `type` and `request_id`. An idle connection
+receives SSE comments. Configure external reverse proxies to forward the response
+without buffering and to allow the configured request deadline.
+
+| Event | Payload and meaning |
+| --- | --- |
+| `started` | Persisted user message and its selected scope |
+| `tool_started`, `tool_completed` | Allowlisted tool name and, on completion, its outcome |
+| `evidence` | Count of newly admitted evidence items |
+| `clarification` | Signals that the saved reply asks for more specific context |
+| `final` | The validated, committed assistant message, including citations and diagnostics |
+| `completed` | The saved result was sent |
+| `error` | Safe status detail. A provider failure can also carry a saved structured unavailable response. |
+| `cancelled` | The request stopped before an assistant reply was committed |
+
+Stop cancels the database reservation. Disconnecting also initiates cleanup.
+The provider wait is cancelled and a guarded transaction prevents an already
+cancelled request from saving a late reply. If the assistant reply commits
+first, it remains available on reload. A disconnected or crashed process can
+leave a reservation until its lease expires. A later write releases that
+reservation. An upstream provider or an active CPU tool may finish processing
+after the API stops waiting. Conversation context sent to the planner is capped
+at four saved messages of 600 characters each from the same asset and prediction
+scope. Tool and token budgets still apply.
+
+### Readiness and local development limits
+
+The provider status reports disabled, missing credentials, or invalid configuration
+before any provider call. It reports configuration separately from upstream
+connectivity, which is checked when needed. The workspace also shows an empty
+knowledge base and the encoder's cold, initializing, ready, or unavailable state.
+Enable optional cached, CPU-only prewarming before starting FastAPI:
+
+```powershell
+$env:FLEETMIND_COPILOT_PREWARM = '1'
+python -m uvicorn fleetmind.api.main:app --host 127.0.0.1 --port 8000
+```
+
+Prewarming runs in a background thread and uses cached or explicitly configured
+local files. Ordinary startup keeps the encoder lazy and prewarming never
+downloads model weights. Prewarming moves initialization earlier and adds the
+encoder's memory cost to each API process that loads it. On a 16 GB machine use
+one development worker, especially when a local LLM is also resident.
+Use the mock and opt-in live evaluation commands above to measure behavior
+with your configured provider.
+
+A Windows smoke benchmark used the cached MiniLM checkpoint, disposable
+PostgreSQL 17.10 with pgvector, the starter corpus, and a deterministic mock
+provider. With lazy loading, the first thermal-gap response took 19.95 s
+and the repeat took 349 ms. With prewarming, the encoder reported readiness
+18.13 s after the health endpoint first responded. The first query after
+readiness took 282 ms and the repeat took 162 ms. These are single-run timings
+through the FastAPI stream, including retrieval and persistence.
+Through the production Next.js proxy, the started event arrived in 126 ms
+and closing the connection changed the stored request to cancelled in 178 ms.
+In the Edge smoke test, a prediction and SHAP answer appeared in 755 ms and
+explicit Stop restored the composer in 181 ms.
+
+Conversation storage is for trusted local development. Conversation IDs segment
+requests and history within the application. All clients with access to the API
+can currently list, inspect, update, and delete those records. Add authentication,
+per-user authorization, operational request limits, and a retention policy before
+sharing the service. Questions and validated replies remain in the database until
+their conversation is deleted. Hosted providers receive relevant serialized context
+and evidence. Provider credentials and private reasoning are excluded from API
+responses and persisted conversation data.
+
+Citations retain the exact selected facts. Source inspection loads current registry
+or knowledge data by ID. If the cited excerpt was superseded or removed, the stored
+quotation remains available and the source inspector reports that the excerpt is
+unavailable. Browser and latency checks used a deterministic mock provider with the
+real FleetMind tools. Live LLM answer quality, latency, and token usage remain unverified.

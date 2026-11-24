@@ -1,7 +1,8 @@
 from alembic import context
 
+from fleetmind.copilot.conversation_models import Base
+from fleetmind.db import models  # noqa: F401
 from fleetmind.db.database import engine
-from fleetmind.db.models import Base
 from fleetmind.knowledge.models import KnowledgeBase
 
 metadata = [Base.metadata, KnowledgeBase.metadata]

@@ -3,6 +3,10 @@ from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
 
+class MissingCredentials(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class Settings:
     provider: str = "disabled"
@@ -54,11 +58,9 @@ class Settings:
             if provider == "openai" and url.netloc.lower() == "api.openai.com"
             else ""
         )
-        if (
-            (provider != "mock" and not model)
-            or len(model) > 160
-            or (provider == "openai" and not api_key)
-        ):
+        if provider == "openai" and not api_key:
+            raise MissingCredentials("Configure hosted provider credentials.")
+        if (provider != "mock" and not model) or len(model) > 160:
             raise ValueError(
                 "Configure the Copilot model and hosted provider credentials."
             )

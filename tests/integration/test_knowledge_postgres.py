@@ -209,6 +209,18 @@ def test_knowledge_api_validates_queries_and_supports_empty_and_offline(store):
             assert client.get(f"{base}/documents").json()[0]["id"] == "torque"
             detail = client.get(f"{base}/documents/torque").json()
             assert detail["chunk_count"] == 1
+            chunk = detail["chunks"][0]
+            assert (
+                client.get(f"{base}/documents/torque/chunks/{chunk['id']}").json()
+                == chunk
+            )
+            assert (
+                client.get(f"{base}/documents/other/chunks/{chunk['id']}").status_code
+                == 404
+            )
+            assert (
+                client.get(f"{base}/documents/torque/chunks/invalid").status_code == 422
+            )
             assert client.get(f"{base}/documents/no-match").status_code == 404
             assert (
                 client.post(

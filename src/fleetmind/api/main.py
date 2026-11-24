@@ -1,16 +1,21 @@
 """FleetMind API with PostgreSQL prediction persistence."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from threading import Thread
+from typing import Annotated
 
 import joblib
 from fastapi import FastAPI, HTTPException, Request
+from fastapi import Path as PathParam
 from sqlalchemy import func, select
 
 from fleetmind.api.assets import get_asset_or_404
 from fleetmind.api.assets import router as assets_router
 from fleetmind.api.copilot import router as copilot_router
+from fleetmind.api.copilot_conversations import router as conversation_router
 from fleetmind.api.dependencies import DBSession
 from fleetmind.api.inference import (
     classify_alert,
@@ -33,6 +38,7 @@ from fleetmind.db.analytics import get_prediction_trends
 from fleetmind.db.history import prediction_history
 from fleetmind.db.models import PredictionHistory
 from fleetmind.explainability import ModelExplainer
+from fleetmind.knowledge.embeddings import get_embedder
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -60,6 +66,10 @@ async def lifespan(app: FastAPI):
     )
 
     print(f"Loaded FleetMind model: {MODEL_VERSION}")
+    if os.getenv("FLEETMIND_COPILOT_PREWARM", "0") == "1":
+        Thread(
+            target=get_embedder().prewarm_offline, daemon=True, name="embedding-prewarm"
+        ).start()
 
     try:
         yield
@@ -80,6 +90,7 @@ app.include_router(assets_router)
 app.include_router(model_router)
 app.include_router(knowledge_router)
 app.include_router(copilot_router)
+app.include_router(conversation_router)
 
 
 @app.get("/health")
@@ -193,6 +204,18 @@ def list_predictions(
         alert_level=alert_level,
         source=source,
     )
+
+
+@app.get(
+    "/api/v1/predictions/{prediction_id}", response_model=PredictionHistoryResponse
+)
+def prediction_detail(
+    prediction_id: Annotated[int, PathParam(gt=0, le=2_147_483_647)], db: DBSession
+):
+    record = db.get(PredictionHistory, prediction_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Prediction not found.")
+    return record
 
 
 @app.get(

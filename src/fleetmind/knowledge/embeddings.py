@@ -100,6 +100,7 @@ class SentenceEmbedder:
         self.lock = Lock()
         self.model = None
         self._identity: EmbeddingIdentity | None = None
+        self.initialization_state = "cold"
 
     @property
     def loaded_identity(self) -> EmbeddingIdentity | None:
@@ -109,11 +110,28 @@ class SentenceEmbedder:
     def identity(self) -> EmbeddingIdentity:
         with self.lock:
             if self._identity is None:
-                self._load()
+                self._initialize()
             assert self._identity is not None
             return self._identity
 
-    def _load(self) -> None:
+    def prewarm_offline(self) -> None:
+        with self.lock:
+            if self._identity is None:
+                try:
+                    self._initialize(force_offline=True)
+                except EmbeddingUnavailable:
+                    logger.warning("Cached embedding prewarm unavailable")
+
+    def _initialize(self, *, force_offline: bool = False) -> None:
+        self.initialization_state = "initializing"
+        try:
+            self._load(force_offline=force_offline)
+        except EmbeddingUnavailable:
+            self.initialization_state = "unavailable"
+            raise
+        self.initialization_state = "ready"
+
+    def _load(self, *, force_offline: bool = False) -> None:
         settings = EmbeddingSettings.from_environment()
         try:
             from sentence_transformers import SentenceTransformer
@@ -130,7 +148,9 @@ class SentenceEmbedder:
                 if settings.directory is not None
                 else settings.name,
                 revision=None if settings.directory is not None else revision,
-                local_files_only=settings.offline or settings.directory is not None,
+                local_files_only=force_offline
+                or settings.offline
+                or settings.directory is not None,
                 device="cpu",
                 trust_remote_code=False,
                 model_kwargs={"use_safetensors": True},

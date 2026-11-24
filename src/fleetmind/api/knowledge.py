@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
@@ -19,6 +19,7 @@ from fleetmind.knowledge.models import Chunk, ChunkEmbedding, Document
 from fleetmind.knowledge.retrieval import document_conditions, search
 from fleetmind.knowledge.schemas import (
     Category,
+    ChunkInfo,
     DocumentDetail,
     DocumentId,
     DocumentInfo,
@@ -78,6 +79,25 @@ def document_detail(
                 db.scalars(query.order_by(Chunk.position).limit(limit).offset(offset))
             ),
         }
+    except StorageError as exc:
+        raise HTTPException(status_code=503, detail=STORE_UNAVAILABLE) from exc
+
+
+@router.get("/documents/{document_id}/chunks/{chunk_id}", response_model=ChunkInfo)
+def inspect_chunk(
+    document_id: DocumentId,
+    chunk_id: Annotated[str, Path(pattern=r"^[a-f0-9]{64}$")],
+    db: DBSession,
+):
+    try:
+        chunk = db.scalar(
+            select(Chunk).where(Chunk.document_id == document_id, Chunk.id == chunk_id)
+        )
+        if chunk is None:
+            raise HTTPException(
+                status_code=404, detail="Knowledge source no longer exists."
+            )
+        return chunk
     except StorageError as exc:
         raise HTTPException(status_code=503, detail=STORE_UNAVAILABLE) from exc
 

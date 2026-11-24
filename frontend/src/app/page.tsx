@@ -256,6 +256,7 @@ export default function Home() {
           <a className="nav-link" href="#activity"><Database size={18} aria-hidden="true"/> Alert Intelligence</a>
           <Link className="nav-link" href="/assets"><Factory size={18} aria-hidden="true" /> Assets</Link>
           <Link className="nav-link" href="/model-intelligence"><BrainCircuit size={18} aria-hidden="true" /> Model Intelligence</Link>
+          <Link className="nav-link" href="/copilot"><Sparkles size={18} aria-hidden="true" /> Copilot</Link>
           <a className="nav-link" href="#evaluate"><SlidersHorizontal size={18}/> Inference lab</a>
         </nav>
         <div className="sidebar-bottom">
