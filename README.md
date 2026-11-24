@@ -86,3 +86,34 @@ PostgreSQL database to run the fresh-install and legacy-upgrade tests with
 
 The existing prediction endpoint accepts optional `asset_id` and `source`
 fields. Supported sources are `unknown`, `manual`, `simulated`, and `telemetry`.
+
+## Model Intelligence
+
+Use **Explain assessment** in a saved prediction’s drawer to view signed
+Tree SHAP attributions and their cumulative waterfall. The server uses the
+original reading, fitted preprocessing, and matching model version. It checks
+that the saved score is reproducible and that the baseline plus contributions
+matches the classifier’s raw margin. The margin and contributions are measured
+in log-odds. The logistic transform produces the uncalibrated score.
+
+`GET /api/v1/predictions/{prediction_id}/explanation` computes an explanation on
+demand. A missing prediction returns 404, a different saved model version
+returns 409, and unavailable or unverifiable explanations return 503.
+`GET /api/v1/model/intelligence` serves the model metadata, training-sample
+importance, and the existing version-matched held-out evaluation.
+
+To reproduce [the global SHAP report](reports/global_shap_xgboost_v1.json), install
+the updated requirements and run `python scripts/generate_global_shap.py` from
+the project root with the frozen artifact and original AI4I CSV available.
+The generator verifies the CSV digest, uses the existing stratified split,
+samples 512 training rows with seed 42, and applies path-dependent TreeExplainer.
+For machine type, it sums the one-hot contributions per row before taking the
+mean absolute value. The thermal gap stays separate because it is a fitted
+feature derived from process minus air temperature. The generator reads no
+held-out features for explanation and performs no fitting or tuning.
+
+The existing held-out report describes synthetic AI4I observations with a rare
+failure class. Scores have no probability calibration or validated
+time-to-failure interpretation. SHAP describes the fitted model’s behavior
+under its attribution assumptions. It cannot confirm physical causes, and
+maintenance decisions require human confirmation.

@@ -1,13 +1,14 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, type CSSProperties, type RefObject } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import Link from "next/link";
-import { ClipboardCheck, Gauge, Layers, ScanLine, Thermometer, Timer, Wrench, X } from "lucide-react";
+import { BrainCircuit, ClipboardCheck, Gauge, Layers, ScanLine, Thermometer, Timer, Wrench, X } from "lucide-react";
 import {
   ALERT_INFO, READING_SOURCES, predictionLabel, scoreText, timestampLabel, type AlertLevel, type Prediction,
 } from "@/lib/predictions";
 import { assetPath } from "@/lib/assets";
 import { AlertBadge } from "./alert-badge";
+import { PredictionExplanation } from "./prediction-explanation";
 
 const GUIDANCE = {
   high_priority: {
@@ -108,6 +109,8 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const explanationId = useId();
+  const [explain, setExplain] = useState(false);
 
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
@@ -132,6 +135,7 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
       aria-labelledby={titleId}
       onClose={() => {
         if (dialogRef.current?.open) return;
+        setExplain(false);
         const returnTarget = trigger?.isConnected ? trigger : focusFallback.current;
         returnTarget?.focus({ preventScroll: true });
       }}
@@ -171,6 +175,18 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
           </div>
         </dl>
         <FailureScore score={record.failure_score} />
+        <section className="model-local">
+          <div className="model-local-heading">
+            <h3><BrainCircuit size={17} aria-hidden="true" /> Why this score?</h3>
+            <button type="button" className="refresh-button" aria-expanded={explain} aria-controls={explanationId}
+              onClick={() => setExplain((open) => !open)}>
+              {explain ? "Hide explanation" : "Explain assessment"}
+            </button>
+          </div>
+          <div id={explanationId} hidden={!explain}>
+            {explain && <PredictionExplanation key={record.prediction_id} predictionId={record.prediction_id} />}
+          </div>
+        </section>
         <SensorSnapshot record={record} />
         <section className="alert-center-guidance">
           <h3><ClipboardCheck size={18} aria-hidden="true" /> Suggested maintenance review</h3>

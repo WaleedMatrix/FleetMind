@@ -1,3 +1,10 @@
+export class FleetMindApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "FleetMindApiError";
+  }
+}
+
 export async function fleetMindRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/fleetmind/${path}`, { ...options, cache: "no-store" });
   if (!response.ok) {
@@ -10,7 +17,7 @@ export async function fleetMindRequest<T>(path: string, options?: RequestInit): 
             ? [item.msg] : []
         )).join(". ")
         : "";
-    throw new Error(message || `FleetMind API request failed (${response.status})`);
+    throw new FleetMindApiError(message || `FleetMind API request failed (${response.status})`, response.status);
   }
   return response.json() as Promise<T>;
 }

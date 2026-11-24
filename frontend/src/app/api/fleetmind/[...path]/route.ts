@@ -13,6 +13,7 @@ const METHODS = new Map([
   ["predictions", ["GET"]],
   ["predict", ["POST"]],
   ["assets", ["GET", "POST"]],
+  ["model/intelligence", ["GET"]],
 ]);
 
 async function forward(request: NextRequest, context: RouteContext) {
@@ -22,7 +23,8 @@ async function forward(request: NextRequest, context: RouteContext) {
   const assetMonitoring = /^assets\/[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}\/(predictions|summary)$/;
   const allowed = METHODS.get(subpath)
     ?? (assetDetail.test(subpath) ? ["GET", "PATCH"] : undefined)
-    ?? (assetMonitoring.test(subpath) ? ["GET"] : undefined);
+    ?? (assetMonitoring.test(subpath) ? ["GET"] : undefined)
+    ?? (/^predictions\/[1-9][0-9]{0,9}\/explanation$/.test(subpath) ? ["GET"] : undefined);
   if (!allowed) {
     return NextResponse.json({ detail: "Unknown endpoint" }, { status: 404 });
   }

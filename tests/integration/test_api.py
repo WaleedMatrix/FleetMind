@@ -1,5 +1,8 @@
 """Integration tests using an isolated test database."""
 
+import json
+from contextlib import contextmanager
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,10 +10,16 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from fleetmind.api.inference import classify_alert
-from fleetmind.api.main import app
+from fleetmind.api.main import PROJECT_ROOT, app
+from fleetmind.api.model_intelligence import (
+    ExplanationResponse,
+    ModelIntelligenceResponse,
+)
 from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
+from fleetmind.data.split import FEATURES
 from fleetmind.db.database import Base, get_db
-from fleetmind.db.models import PredictionHistory  # noqa: F401
+from fleetmind.db.models import PredictionHistory
+from fleetmind.features.engineering import THERMAL_GAP
 
 SAMPLE_READING = {
     "machine_type": "L",
@@ -71,6 +80,94 @@ def test_health_endpoint(client):
     assert data["status"] == "ok"
     assert data["model_loaded"] is True
     assert data["model_version"] == MODEL_VERSION
+
+
+def test_prediction_explanation_matches_saved_score_and_raw_margin(client):
+    saved = client.post("/api/v1/predict", json=SAMPLE_READING).json()
+    path = f"/api/v1/predictions/{saved['prediction_id']}/explanation"
+    exp = app.state.explainer
+    result = client.get(path)
+    assert result.status_code == 200
+    explanation = ExplanationResponse.model_validate(result.json())
+    assert explanation.model_version == saved["model_version"]
+    assert explanation.failure_score == saved["failure_score"]
+    assert explanation.output_unit == "raw_margin_log_odds"
+    assert [feature.name for feature in explanation.features] == [
+        *FEATURES,
+        THERMAL_GAP,
+    ]
+    assert [feature.value for feature in explanation.features] == [
+        *SAMPLE_READING.values(),
+        10.0,
+    ]
+    assert explanation.features[0].unit is None
+    assert len(explanation.features[0].transformed_features) == 3
+    assert explanation.features[-1].unit == "K"
+    assert explanation.features[-1].derived
+    total = explanation.baseline + sum(
+        item.contribution for item in explanation.features
+    )
+    assert total == pytest.approx(explanation.raw_output, abs=2e-5)
+    assert client.get(path).json() == result.json()
+    assert app.state.explainer is exp
+
+
+def test_explanation_refuses_missing_incompatible_and_inconsistent_records(client):
+    assert client.get("/api/v1/predictions/8123/explanation").status_code == 404
+    assert client.get("/api/v1/predictions/0/explanation").status_code == 422
+    created = client.post("/api/v1/predict", json=SAMPLE_READING).json()
+    prediction_id = created["prediction_id"]
+    get_test_session = contextmanager(app.dependency_overrides[get_db])
+    with get_test_session() as db:
+        record = db.get(PredictionHistory, prediction_id)
+        record.model_version = "archived_model"
+        db.commit()
+    path = f"/api/v1/predictions/{prediction_id}/explanation"
+    incompatible = client.get(path)
+    assert incompatible.status_code == 409
+    assert "archived_model" in incompatible.json()["detail"]
+    with get_test_session() as db:
+        record = db.get(PredictionHistory, prediction_id)
+        record.model_version = MODEL_VERSION
+        record.failure_score = 0.8 if created["failure_score"] < 0.5 else 0.1
+        db.commit()
+    assert client.get(path).status_code == 503
+
+
+def test_inference_works_with_unavailable_explainer(client):
+    explainer = app.state.explainer
+    app.state.explainer = None
+    try:
+        predicted = client.post("/api/v1/predict", json=SAMPLE_READING)
+        assert predicted.status_code == 201
+        prediction_id = predicted.json()["prediction_id"]
+        path = f"/api/v1/predictions/{prediction_id}/explanation"
+        assert client.get(path).status_code == 503
+    finally:
+        app.state.explainer = explainer
+
+
+def test_model_intelligence_uses_frozen_report_and_training_importance(client):
+    result = client.get("/api/v1/model/intelligence")
+    assert result.status_code == 200
+    body = ModelIntelligenceResponse.model_validate(result.json())
+    report = json.loads((PROJECT_ROOT / body.metadata.evaluation_report).read_text())
+    assert body.evaluation is not None
+    assert body.evaluation.average_precision == report["average_precision"]
+    assert body.evaluation.test_observations == report["test_observations"]
+    assert (
+        body.evaluation.primary_threshold_results.true_positive
+        == (report["primary_threshold_results"]["TP"])
+    )
+    assert body.global_importance is not None
+    assert body.global_importance.model_version == MODEL_VERSION
+    assert body.global_importance.dataset_sha256 == body.metadata.dataset_sha256
+    assert body.global_importance.dataset_split == "training"
+    assert body.global_importance.sample_size == 512
+    assert [item.name for item in body.global_importance.features] == [
+        *FEATURES,
+        THERMAL_GAP,
+    ]
 
 
 def test_prediction_endpoint(client):

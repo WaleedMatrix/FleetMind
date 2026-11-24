@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import {
-  Activity, AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Bell,
+  Activity, AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Bell, BrainCircuit,
   CheckCircle2, CircleDot, Database, Factory,
   Gauge, LayoutDashboard, Loader2, Radio, RefreshCw, ScanLine,
   ShieldCheck, SlidersHorizontal, Sparkles, Thermometer,
@@ -255,6 +255,7 @@ export default function Home() {
           <a className="nav-link" href="#trends"><Activity size={18}/> Analytics</a>
           <a className="nav-link" href="#activity"><Database size={18} aria-hidden="true"/> Alert Intelligence</a>
           <Link className="nav-link" href="/assets"><Factory size={18} aria-hidden="true" /> Assets</Link>
+          <Link className="nav-link" href="/model-intelligence"><BrainCircuit size={18} aria-hidden="true" /> Model Intelligence</Link>
           <a className="nav-link" href="#evaluate"><SlidersHorizontal size={18}/> Inference lab</a>
         </nav>
         <div className="sidebar-bottom">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./assets.css";
+import "./model-intelligence.css";
 import "../components/alert-intelligence.css";
 
 export const metadata: Metadata = {

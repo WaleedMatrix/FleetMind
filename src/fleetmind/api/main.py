@@ -1,5 +1,6 @@
 """FleetMind API with PostgreSQL prediction persistence."""
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from fleetmind.api.inference import (
     classify_alert,
     to_model_frame,
 )
+from fleetmind.api.model_intelligence import load_model_intelligence
+from fleetmind.api.model_intelligence import router as model_router
 from fleetmind.api.schemas import (
     AssetId,
     DashboardSummaryResponse,
@@ -27,10 +30,12 @@ from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
 from fleetmind.db.analytics import get_prediction_trends
 from fleetmind.db.history import prediction_history
 from fleetmind.db.models import PredictionHistory
+from fleetmind.explainability import ModelExplainer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 MODEL_PATH = PROJECT_ROOT / "artifacts" / "models" / f"{MODEL_VERSION}.joblib"
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -42,12 +47,25 @@ async def lifespan(app: FastAPI):
 
     # Load only trusted model artifacts.
     app.state.model = joblib.load(MODEL_PATH)
+    app.state.model_version = MODEL_VERSION
+    app.state.explainer = None
+    try:
+        app.state.explainer = ModelExplainer(app.state.model, MODEL_VERSION)
+    except Exception:
+        logger.exception("Model explainability could not be initialized")
+    app.state.model_intelligence = load_model_intelligence(
+        PROJECT_ROOT, MODEL_PATH, MODEL_VERSION, app.state.explainer
+    )
 
     print(f"Loaded FleetMind model: {MODEL_VERSION}")
 
-    yield
-
-    del app.state.model
+    try:
+        yield
+    finally:
+        del app.state.explainer
+        del app.state.model_intelligence
+        del app.state.model_version
+        del app.state.model
 
 
 app = FastAPI(
@@ -57,6 +75,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(assets_router)
+app.include_router(model_router)
 
 
 @app.get("/health")

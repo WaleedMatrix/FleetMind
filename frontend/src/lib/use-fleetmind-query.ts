@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fleetMindRequest } from "./api";
+import { FleetMindApiError, fleetMindRequest } from "./api";
 
-type LoadState<T> = { path: string; data: T | null; error: string | null; pending: boolean };
+type LoadState<T> = { path: string; data: T | null; error: string | null; status?: number; pending: boolean };
 type QueryOptions = { pollMs?: number; delay?: number; revision?: number };
 
 export function useFleetMindQuery<T>(
@@ -28,7 +28,8 @@ export function useFleetMindQuery<T>(
         if (!controller.signal.aborted) {
           const message = error instanceof Error ? error.message : "Unable to reach FleetMind.";
           setState((previous) => ({
-            path, data: previous?.path === path ? previous.data : null, error: message, pending: false,
+            path, data: previous?.path === path ? previous.data : null, error: message,
+            status: error instanceof FleetMindApiError ? error.status : undefined, pending: false,
           }));
         }
       } finally {
@@ -45,5 +46,5 @@ export function useFleetMindQuery<T>(
     };
   }, [path, pollMs, delay, revision]);
 
-  return state?.path === path ? state : { data: null, error: null, pending: true };
+  return state?.path === path ? state : { data: null, error: null, status: undefined, pending: true };
 }
