@@ -6,25 +6,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
-const ALLOWED = new Set([
-  "health",
-  "dashboard/summary",
-  "dashboard/trends",
-  "predictions",
-  "predict",
+const METHODS = new Map([
+  ["health", ["GET"]],
+  ["dashboard/summary", ["GET"]],
+  ["dashboard/trends", ["GET"]],
+  ["predictions", ["GET"]],
+  ["predict", ["POST"]],
+  ["assets", ["GET", "POST"]],
 ]);
 
 async function forward(request: NextRequest, context: RouteContext) {
   const { path } = await context.params;
   const subpath = path.join("/");
-  if (!ALLOWED.has(subpath)) {
+  const assetDetail = /^assets\/[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
+  const assetMonitoring = /^assets\/[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}\/(predictions|summary)$/;
+  const allowed = METHODS.get(subpath)
+    ?? (assetDetail.test(subpath) ? ["GET", "PATCH"] : undefined)
+    ?? (assetMonitoring.test(subpath) ? ["GET"] : undefined);
+  if (!allowed) {
     return NextResponse.json({ detail: "Unknown endpoint" }, { status: 404 });
   }
-  if (request.method === "POST" && subpath !== "predict") {
-    return NextResponse.json({ detail: "Method not allowed" }, { status: 405 });
-  }
-  if (request.method === "GET" && subpath === "predict") {
-    return NextResponse.json({ detail: "Method not allowed" }, { status: 405 });
+  if (!allowed.includes(request.method)) {
+    return NextResponse.json({ detail: "Method not allowed" }, {
+      status: 405,
+      headers: { Allow: allowed.join(", ") },
+    });
   }
 
   const apiBase = process.env.FLEETMIND_API_URL || "http://127.0.0.1:8000";
@@ -33,12 +39,15 @@ async function forward(request: NextRequest, context: RouteContext) {
   target.search = request.nextUrl.search;
 
   try {
+    const reads = request.method === "GET";
+    const body = reads ? undefined : await request.text();
+    const timeout = AbortSignal.timeout(15_000);
     const response = await fetch(target, {
       method: request.method,
-      headers: request.method === "POST" ? { "Content-Type": "application/json" } : undefined,
-      body: request.method === "POST" ? await request.text() : undefined,
+      headers: reads ? undefined : { "Content-Type": "application/json" },
+      body,
       cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
+      signal: reads ? AbortSignal.any([request.signal, timeout]) : timeout,
     });
     const result = await response.text();
     return new NextResponse(result, {
@@ -61,5 +70,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  return forward(request, context);
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
   return forward(request, context);
 }

@@ -1,21 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import {
   Activity, AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Bell,
-  CheckCircle2, ChevronLeft, ChevronRight, CircleDot, Database,
+  CheckCircle2, CircleDot, Database, Factory,
   Gauge, LayoutDashboard, Loader2, Radio, RefreshCw, ScanLine,
-  ShieldCheck, SlidersHorizontal, Sparkles, Thermometer, Wrench,
+  ShieldCheck, SlidersHorizontal, Sparkles, Thermometer,
   Zap,
 } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, Cell, Line, LineChart, Pie,
   PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { AlertBadge } from "@/components/alert-badge";
+import { AssetPicker } from "@/components/asset-picker";
+import { PredictionHistory } from "@/components/prediction-history";
+import { fleetMindRequest } from "@/lib/api";
+import type { Asset } from "@/lib/assets";
+import {
+  PREDICTIONS_PER_PAGE, scoreText,
+  type AlertFilter, type InferenceResult, type Prediction, type PredictionPage, type SensorReading,
+} from "@/lib/predictions";
 
-type AlertLevel = "high_priority" | "review" | "no_alert";
 type Interval = "hour" | "day";
-type Filter = "all" | AlertLevel;
 
 type Summary = {
   total_predictions: number;
@@ -36,57 +44,19 @@ type TrendPoint = {
 
 type Trends = { interval: Interval; points: TrendPoint[] };
 
-type Prediction = {
-  prediction_id: number;
-  machine_type: "L" | "M" | "H";
-  failure_score: number;
-  predicted_failure: boolean;
-  alert_level: AlertLevel;
-  model_version: string;
-  air_temperature_k: number;
-  process_temperature_k: number;
-  rotational_speed_rpm: number;
-  torque_nm: number;
-  tool_wear_min: number;
-  created_at: string;
-};
-
-type SensorReading = {
-  machine_type: "L" | "M" | "H";
-  air_temperature_k: number;
-  process_temperature_k: number;
-  rotational_speed_rpm: number;
-  torque_nm: number;
-  tool_wear_min: number;
-};
-
-type InferenceResult = {
-  prediction_id: number;
-  model_version: string;
-  failure_score: number;
-  predicted_failure: boolean;
-  alert_level: AlertLevel;
-};
-
 type Health = { status: string; model_loaded: boolean; model_version: string };
 
 const INITIAL_READING: SensorReading = {
   machine_type: "L",
-  air_temperature_k: 300,
-  process_temperature_k: 310,
-  rotational_speed_rpm: 1500,
-  torque_nm: 40,
-  tool_wear_min: 120,
+  air_temperature_k: Number.NaN,
+  process_temperature_k: Number.NaN,
+  rotational_speed_rpm: Number.NaN,
+  torque_nm: Number.NaN,
+  tool_wear_min: Number.NaN,
 };
 
-const ALERT_INFO: Record<AlertLevel, { label: string; tone: string; color: string }> = {
-  high_priority: { label: "High priority", tone: "critical", color: "#ff7788" },
-  review: { label: "Needs review", tone: "warning", color: "#f3b766" },
-  no_alert: { label: "No alert", tone: "healthy", color: "#3ee0b1" },
-};
-
-async function getJSON<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/fleetmind/${path}`, { cache: "no-store" });
+async function getJSON<T>(path: string, signal: AbortSignal): Promise<T> {
+  const response = await fetch(`/api/fleetmind/${path}`, { cache: "no-store", signal });
   if (!response.ok) {
     const detail = await response.json().catch(() => ({})) as {detail?: string};
     throw new Error(detail.detail ?? `API request failed (${response.status})`);
@@ -102,16 +72,6 @@ function utcLabel(timestamp: string, interval: Interval) {
     : date.toLocaleString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
 }
 
-function datetimeLabel(timestamp: string) {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "—";
-  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} · ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
-}
-
-function scoreText(value: number) {
-  return Number.isFinite(value) ? value.toFixed(3) : "—";
-}
-
 function StatCard({ label, value, helper, icon, tone }: {
   label: string; value: string; helper: string; icon: ReactNode; tone: string;
 }) {
@@ -122,11 +82,6 @@ function StatCard({ label, value, helper, icon, tone }: {
       <div className="stat-foot"><span className="stat-marker" />{helper}</div>
     </div>
   );
-}
-
-function AlertBadge({ level }: { level: AlertLevel }) {
-  const info = ALERT_INFO[level];
-  return <span className={`alert-badge badge-${info.tone}`}><i />{info.label}</span>;
 }
 
 function EmptyChart({ text }: { text: string }) {
@@ -141,14 +96,14 @@ function EmptyChart({ text }: { text: string }) {
 
 function NumericInput({ label, unit, value, onChange, step = 1, min = 0 }: {
   label: string; unit: string; value: number; onChange: (value: number) => void;
-  step?: number; min?: number;
+  step?: number | "any"; min?: number;
 }) {
   return (
     <label className="sensor-field">
       <span>{label}</span>
       <span className="input-shell">
-        <input type="number" required min={min} step={step} value={value}
-          onChange={(event) => onChange(Number(event.target.value))} />
+        <input type="number" required min={min} step={step} value={Number.isFinite(value) ? value : ""}
+          onChange={(event) => onChange(event.target.valueAsNumber)} />
         <small>{unit}</small>
       </span>
     </label>
@@ -163,67 +118,85 @@ const CHART_TOOLTIP_STYLE = {
 export default function Home() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [trends, setTrends] = useState<Trends | null>(null);
-  const [history, setHistory] = useState<Prediction[]>([]);
+  const [history, setHistory] = useState<PredictionPage | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [interval, setIntervalValue] = useState<Interval>("hour");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<AlertFilter>("all");
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [reading, setReading] = useState<SensorReading>(INITIAL_READING);
+  const [asset, setAsset] = useState<Asset | null>(null);
+  const [source, setSource] = useState<"manual" | "simulated">("manual");
   const [submitting, setSubmitting] = useState(false);
   const [prediction, setPrediction] = useState<InferenceResult | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const params = new URLSearchParams({ limit: "8", offset: String(offset) });
-      if (filter !== "all") params.set("alert_level", filter);
-      const [nextSummary, nextTrends, nextHistory, nextHealth] = await Promise.all([
-        getJSON<Summary>("dashboard/summary"),
-        getJSON<Trends>(`dashboard/trends?interval=${interval}`),
-        getJSON<Prediction[]>(`predictions?${params.toString()}`),
-        getJSON<Health>("health"),
-      ]);
-      setSummary(nextSummary);
-      setTrends(nextTrends);
-      setHistory(nextHistory);
-      setHealth(nextHealth);
-      setLastSync(new Date());
-      setError(null);
-    } catch (exception) {
-      setError(exception instanceof Error ? exception.message : "Unable to connect to FleetMind API.");
-      setHealth(null);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  const refreshDashboard = useRef<((replaceInFlight?: boolean) => Promise<void>) | null>(null);
+
+  // Invalidate the previous query as soon as the new selection commits.
+  useLayoutEffect(() => {
+    let activeRequest: AbortController | null = null;
+    // Fetch one extra record so a full final page cannot advertise another page.
+    const params = new URLSearchParams({ limit: String(PREDICTIONS_PER_PAGE + 1), offset: String(offset) });
+    if (filter !== "all") params.set("alert_level", filter);
+
+    async function load(replaceInFlight = false) {
+      if (activeRequest && !replaceInFlight) return;
+      activeRequest?.abort();
+
+      const controller = new AbortController();
+      const { signal } = controller;
+      activeRequest = controller;
+      setRefreshing(true);
+      try {
+        const [nextSummary, nextTrends, nextHistory, nextHealth] = await Promise.all([
+          getJSON<Summary>("dashboard/summary", signal),
+          getJSON<Trends>(`dashboard/trends?interval=${interval}`, signal),
+          getJSON<Prediction[]>(`predictions?${params.toString()}`, signal),
+          getJSON<Health>("health", signal),
+        ]);
+        if (activeRequest !== controller) return;
+        setSummary(nextSummary);
+        setTrends(nextTrends);
+        setHistory({
+          filter,
+          offset,
+          records: nextHistory.slice(0, PREDICTIONS_PER_PAGE),
+          hasNext: nextHistory.length > PREDICTIONS_PER_PAGE,
+        });
+        setHealth(nextHealth);
+        setLastSync(new Date());
+        setError(null);
+      } catch (exception) {
+        if (activeRequest !== controller) return;
+        // A failed endpoint makes the rest of this batch unnecessary.
+        controller.abort();
+        setError(exception instanceof Error ? exception.message : "Unable to connect to FleetMind API.");
+        setHealth(null);
+      } finally {
+        if (activeRequest === controller) {
+          activeRequest = null;
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
     }
+
+    refreshDashboard.current = load;
+    const initialTimer = window.setTimeout(() => { void load(); }, 0);
+    const refreshTimer = window.setInterval(() => { void load(); }, 30_000);
+
+    return () => {
+      refreshDashboard.current = null;
+      activeRequest?.abort();
+      activeRequest = null;
+      window.clearTimeout(initialTimer);
+      window.clearInterval(refreshTimer);
+    };
   }, [interval, filter, offset]);
-
-  useEffect(() => {
-  const controller = new AbortController();
-
-  const initialTimer = window.setTimeout(() => {
-    if (!controller.signal.aborted) {
-      void load();
-    }
-  }, 0);
-
-  const refreshTimer = window.setInterval(() => {
-    if (!controller.signal.aborted) {
-      void load();
-    }
-  }, 30_000);
-
-  return () => {
-    controller.abort();
-    window.clearTimeout(initialTimer);
-    window.clearInterval(refreshTimer);
-  };
-}, [load]);
 
   const points = useMemo(() => (trends?.points ?? []).map((point) => ({
     ...point,
@@ -253,19 +226,13 @@ export default function Home() {
     setSubmitError(null);
     setPrediction(null);
     try {
-      const response = await fetch("/api/fleetmind/predict", {
+      const result = await fleetMindRequest<InferenceResult>("predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(reading),
+        body: JSON.stringify({ ...reading, asset_id: asset?.asset_id ?? null, source }),
       });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({})) as { detail?: unknown };
-        const detail = typeof payload.detail === "string" ? payload.detail : `Inference failed (${response.status})`;
-        throw new Error(detail);
-      }
-      const result = await response.json() as InferenceResult;
       setPrediction(result);
-      await load();
+      await refreshDashboard.current?.(true);
     } catch (exception) {
       setSubmitError(exception instanceof Error ? exception.message : "Prediction request failed.");
     } finally {
@@ -274,6 +241,8 @@ export default function Home() {
   }
 
   const connected = Boolean(health?.model_loaded && !error);
+  const thermalGap = reading.process_temperature_k - reading.air_temperature_k;
+  const historyPage = history?.filter === filter && history.offset === offset ? history : null;
 
   return (
     <div className="app-shell">
@@ -284,7 +253,8 @@ export default function Home() {
         <nav className="sidebar-nav" aria-label="Primary navigation">
           <a className="nav-link active" href="#overview"><LayoutDashboard size={18}/> Command center <span className="active-dot" /></a>
           <a className="nav-link" href="#trends"><Activity size={18}/> Analytics</a>
-          <a className="nav-link" href="#activity"><Database size={18}/> Prediction log</a>
+          <a className="nav-link" href="#activity"><Database size={18} aria-hidden="true"/> Alert Intelligence</a>
+          <Link className="nav-link" href="/assets"><Factory size={18} aria-hidden="true" /> Assets</Link>
           <a className="nav-link" href="#evaluate"><SlidersHorizontal size={18}/> Inference lab</a>
         </nav>
         <div className="sidebar-bottom">
@@ -293,7 +263,7 @@ export default function Home() {
             <div className="system-state"><span className={`live-dot ${connected ? "" : "offline-dot"}`} />{connected ? "Model serving" : "Connection unavailable"}</div>
             <p>{connected ? health?.model_version : "Start FastAPI to connect"}</p>
           </div>
-          <div className="sidebar-footer"><CircleDot size={13}/> Synthetic-data environment</div>
+            <div className="sidebar-footer"><CircleDot size={13}/> Maintenance workspace</div>
         </div>
       </aside>
 
@@ -306,10 +276,10 @@ export default function Home() {
         <div className="content-container">
           <div className="page-heading">
             <div><div className="eyebrow"><span className="eyebrow-rule"/> COMMAND CENTER <span className="eyebrow-secondary">/ OVERVIEW</span></div><h1>Operational <span>intelligence.</span></h1><p>Your machine assessment pipeline, monitored in one place.</p></div>
-            <div className="heading-controls"><div className={`connection-pill ${connected ? "connected" : "disconnected"}`}><span className="live-dot"/>{connected ? "All systems operational" : "API disconnected"}</div><button className="refresh-button" onClick={() => { void load(); }} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw size={16} className={refreshing ? "spinning" : ""}/><span>Refresh</span></button></div>
+            <div className="heading-controls"><div className={`connection-pill ${connected ? "connected" : "disconnected"}`}><span className="live-dot"/>{connected ? "API connected" : "API disconnected"}</div><button className="refresh-button" onClick={() => { void refreshDashboard.current?.(); }} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw size={16} className={refreshing ? "spinning" : ""}/><span>Refresh</span></button></div>
           </div>
 
-          {error && <div className="error-banner" role="alert"><AlertTriangle size={18}/><div><strong>Unable to update dashboard</strong><p>{error}. Confirm FastAPI is running on port 8000.</p></div><button onClick={() => { void load(); }}>Retry <ArrowRight size={14}/></button></div>}
+          {error && <div className="error-banner" role="alert"><AlertTriangle size={18}/><div><strong>Unable to update dashboard</strong><p>{error}. Confirm FastAPI is running on port 8000.</p></div><button onClick={() => { void refreshDashboard.current?.(); }}>Retry <ArrowRight size={14}/></button></div>}
 
           <section className="hero-panel" aria-label="FleetMind pipeline overview">
             <div className="hero-copy"><div className="hero-kicker"><Sparkles size={14}/> MODEL OPERATIONS / LIVE OVERVIEW</div><h2>Every signal.<br/><span>One clear decision.</span></h2><p>Turn raw sensor readings into prioritized maintenance assessments — and keep an auditable record of every prediction.</p><a href="#evaluate" className="hero-cta">Run an assessment <ArrowUpRight size={17}/></a></div>
@@ -341,10 +311,17 @@ export default function Home() {
           </section>
 
           <section className="lower-grid" id="activity">
-            <div className="panel history-panel"><div className="panel-heading history-head"><div><div className="panel-label"><Database size={16}/> AUDIT STREAM</div><h3>Recent predictions</h3><p>Persisted model assessments</p></div><div className="filter-select"><SlidersHorizontal size={15}/><select aria-label="Filter predictions by alert" value={filter} onChange={(event) => { setFilter(event.target.value as Filter); setOffset(0); }}><option value="all">All alerts</option><option value="high_priority">High priority</option><option value="review">Needs review</option><option value="no_alert">No alert</option></select></div></div>
-              <div className="table-scroll"><table className="history-table"><thead><tr><th>ASSESSMENT</th><th>MACHINE</th><th>MODEL SCORE</th><th>CLASSIFICATION</th><th>TIME</th></tr></thead><tbody>{history.map((item) => <tr key={item.prediction_id}><td className="table-id">#{String(item.prediction_id).padStart(5,"0")}</td><td><span className="machine-indicator"><Wrench size={13}/>{item.machine_type}-TYPE</span></td><td><span className="score-cell"><span className="mini-score-track"><span style={{width:`${Math.max(0,Math.min(100,item.failure_score*100))}%`,background:ALERT_INFO[item.alert_level].color}}/></span>{scoreText(item.failure_score)}</span></td><td><AlertBadge level={item.alert_level}/></td><td className="table-time">{datetimeLabel(item.created_at)}</td></tr>)}</tbody></table>{history.length === 0 && !error && <div className="table-empty"><Database size={25}/>{filter === "all" ? "No predictions stored yet." : "No predictions match this alert filter."}</div>}</div>
-              <div className="table-footer"><span>Showing {history.length ? offset+1 : 0}–{offset+history.length} records · latest first</span><div className="page-actions"><button disabled={offset===0} onClick={()=>setOffset(Math.max(0,offset-8))} aria-label="Previous page"><ChevronLeft size={17}/></button><span>{Math.floor(offset/8)+1}</span><button disabled={history.length<8} onClick={()=>setOffset(offset+8)} aria-label="Next page"><ChevronRight size={17}/></button></div></div>
-            </div>
+            <PredictionHistory
+              page={historyPage}
+              filter={filter}
+              offset={offset}
+              failed={Boolean(error) && !refreshing}
+              onFilterChange={(nextFilter) => {
+                setFilter(nextFilter);
+                setOffset(0);
+              }}
+              onPageChange={setOffset}
+            />
             <div className="panel distribution-panel"><div className="panel-heading"><div><div className="panel-label"><CircleDot size={16}/> ALERT MIX</div><h3>Alert distribution</h3><p>Across recorded assessments</p></div></div>
               <div className="donut-area">{distribution.length ? <><div className="donut-chart"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={distribution} dataKey="value" innerRadius={69} outerRadius={89} paddingAngle={4} stroke="none" startAngle={90} endAngle={-270}>{distribution.map((slice) => <Cell key={slice.name} fill={slice.color}/>)}</Pie><Tooltip contentStyle={CHART_TOOLTIP_STYLE}/></PieChart></ResponsiveContainer></div><div className="donut-center"><strong>{summary?.total_predictions.toLocaleString()}</strong><span>TOTAL</span></div></> : <div className="donut-empty"><CircleDot size={35}/><span>No assessments yet</span></div>}</div>
               <div className="legend-list">{([
@@ -357,13 +334,53 @@ export default function Home() {
 
           <section className="inference-section" id="evaluate"><div className="section-head"><div><span className="section-overline">03 / INTERACTIVE INFERENCE</span><h2>Machine assessment lab</h2></div><span className="section-note"><Zap size={14}/> Runs against your saved XGBoost model</span></div>
             <div className="inference-grid"><div className="panel inference-panel"><div className="inference-intro"><div className="inference-icon"><Thermometer size={20}/></div><div><h3>Submit a sensor reading</h3><p>Validate the live inference pipeline and persist the result to PostgreSQL.</p></div></div>
-                <form onSubmit={(event)=>{void runInference(event);}}><div className="sensor-grid"><label className="sensor-field"><span>Machine type</span><span className="input-shell select-shell"><select value={reading.machine_type} onChange={(event)=>updateReading("machine_type",event.target.value as SensorReading["machine_type"])}><option value="L">Low / L</option><option value="M">Medium / M</option><option value="H">High / H</option></select></span></label>
-                    <NumericInput label="Air temperature" unit="K" value={reading.air_temperature_k} step={0.1} min={0.001} onChange={(v)=>updateReading("air_temperature_k",v)}/>
-                    <NumericInput label="Process temperature" unit="K" value={reading.process_temperature_k} step={0.1} min={0.001} onChange={(v)=>updateReading("process_temperature_k",v)}/>
-                    <NumericInput label="Rotational speed" unit="RPM" value={reading.rotational_speed_rpm} step={1} min={0.001} onChange={(v)=>updateReading("rotational_speed_rpm",v)}/>
-                    <NumericInput label="Torque" unit="Nm" value={reading.torque_nm} step={0.1} onChange={(v)=>updateReading("torque_nm",v)}/>
-                    <NumericInput label="Tool wear" unit="min" value={reading.tool_wear_min} step={1} onChange={(v)=>updateReading("tool_wear_min",v)}/>
-                  </div><div className="form-actions"><div className="derived-chip"><Thermometer size={15}/> Thermal gap: <strong>{(reading.process_temperature_k-reading.air_temperature_k).toFixed(1)} K</strong></div><button type="submit" className="submit-btn" disabled={submitting || !connected}>{submitting ? <Loader2 size={16} className="spinning"/> : <Zap size={16}/>} {submitting ? "Evaluating…" : "Run prediction"}<ArrowRight size={16}/></button></div></form>
+                <form onSubmit={(event) => { void runInference(event); }}>
+                  <fieldset className="asset-inference-fields" disabled={submitting}>
+                    <legend className="asset-visually-hidden">Assessment inputs</legend>
+                    <AssetPicker value={asset} onChange={(selection) => {
+                      setAsset(selection);
+                      updateReading("machine_type", selection?.machine_type ?? reading.machine_type);
+                    }} />
+                    <div className="sensor-grid">
+                      <label className="sensor-field">
+                        <span>Machine type</span>
+                        <span className="input-shell select-shell">
+                          <select value={reading.machine_type} disabled={Boolean(asset)}
+                            onChange={(event) => updateReading("machine_type", event.target.value as SensorReading["machine_type"])}>
+                            <option value="L">Low / L</option><option value="M">Medium / M</option><option value="H">High / H</option>
+                          </select>
+                        </span>
+                      </label>
+                      <NumericInput label="Air temperature" unit="K" value={reading.air_temperature_k} step="any" min={0.001} onChange={(value) => updateReading("air_temperature_k", value)} />
+                      <NumericInput label="Process temperature" unit="K" value={reading.process_temperature_k} step="any" min={0.001} onChange={(value) => updateReading("process_temperature_k", value)} />
+                      <NumericInput label="Rotational speed" unit="RPM" value={reading.rotational_speed_rpm} step="any" min={0.001} onChange={(value) => updateReading("rotational_speed_rpm", value)} />
+                      <NumericInput label="Torque" unit="Nm" value={reading.torque_nm} step="any" onChange={(value) => updateReading("torque_nm", value)} />
+                      <NumericInput label="Tool wear" unit="min" value={reading.tool_wear_min} step="any" onChange={(value) => updateReading("tool_wear_min", value)} />
+                      <label className="sensor-field">
+                        <span>Reading source</span>
+                        <span className="input-shell select-shell">
+                          <select value={source} onChange={(event) => {
+                            setSource(event.target.value === "simulated" ? "simulated" : "manual");
+                            setPrediction(null);
+                            setSubmitError(null);
+                          }}>
+                            <option value="manual">Manual entry</option>
+                            <option value="simulated">Simulated</option>
+                          </select>
+                        </span>
+                      </label>
+                    </div>
+                  </fieldset>
+                  <div className="form-actions">
+                    <div className="derived-chip"><Thermometer size={15} aria-hidden="true" /> Thermal gap
+                      <strong>{Number.isFinite(thermalGap) ? `${thermalGap.toFixed(1)} K` : "—"}</strong>
+                    </div>
+                    <button type="submit" className="submit-btn" disabled={submitting || !connected}>
+                      {submitting ? <Loader2 size={16} className="spinning" /> : <Zap size={16} />}
+                      {submitting ? "Evaluating…" : "Run prediction"}<ArrowRight size={14} />
+                    </button>
+                  </div>
+                </form>
                 {submitError && <div className="submit-message submit-message-error" role="alert"><AlertTriangle size={17}/>{submitError}</div>}
                 {prediction && <div className="prediction-result" role="status"><div><span className="result-label"><CheckCircle2 size={15}/> ASSESSMENT SAVED · #{prediction.prediction_id}</span><div className="result-main">Model score <strong>{scoreText(prediction.failure_score)}</strong></div></div><AlertBadge level={prediction.alert_level}/></div>}
               </div>

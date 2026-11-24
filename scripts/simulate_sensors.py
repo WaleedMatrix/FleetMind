@@ -35,6 +35,7 @@ def generate_reading(
         tool_wear = rng.uniform(20.0, 170.0)
 
     return {
+        "source": "simulated",
         "machine_type": machine_type,
         "air_temperature_k": round(air_temperature, 2),
         "process_temperature_k": round(air_temperature + thermal_gap, 2),

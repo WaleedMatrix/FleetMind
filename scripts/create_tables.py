@@ -1,15 +1,19 @@
-"""Create FleetMind database tables for local development."""
+"""Apply FleetMind database migrations for local development."""
 
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import inspect
 
-from fleetmind.db.database import Base, engine
-from fleetmind.db.models import PredictionHistory  # noqa: F401
+from fleetmind.db.database import engine
 
 
 def main():
     print("=== FLEETMIND DATABASE INITIALIZATION ===")
 
-    Base.metadata.create_all(bind=engine)
+    config = Path(__file__).resolve().parents[1] / "alembic.ini"
+    command.upgrade(Config(config), "head")
 
     inspector = inspect(engine)
 

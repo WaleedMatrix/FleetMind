@@ -20,6 +20,13 @@ SAMPLE_READING = {
     "torque_nm": 40.0,
     "tool_wear_min": 120,
 }
+PRESS = {
+    "asset_id": "press-01",
+    "display_name": "Forming Press",
+    "machine_type": "L",
+    "location": "North line",
+    "description": "Primary forming station",
+}
 
 
 @pytest.fixture
@@ -120,12 +127,14 @@ def test_prediction_is_saved_and_retrievable(client):
 
     saved = history[0]
 
-    assert saved["prediction_id"] == (created_prediction["prediction_id"])
-    assert saved["machine_type"] == "L"
-    assert saved["torque_nm"] == 40.0
+    assert saved["prediction_id"] == created_prediction["prediction_id"]
+    assert {field: saved[field] for field in SAMPLE_READING} == SAMPLE_READING
     assert saved["failure_score"] == pytest.approx(created_prediction["failure_score"])
     assert saved["model_version"] == MODEL_VERSION
+    assert saved["alert_level"] == created_prediction["alert_level"]
     assert saved["created_at"] is not None
+    assert saved["asset_id"] is None
+    assert saved["source"] == "unknown"
 
 
 def test_invalid_history_limit(client):
@@ -161,6 +170,31 @@ def test_prediction_history_filtering(client):
     assert history[0]["alert_level"] == saved_alert
 
 
+def test_filtered_history_keeps_latest_first_across_pages(client):
+    created_ids = []
+    for _ in range(3):
+        response = client.post("/api/v1/predict", json=SAMPLE_READING)
+        assert response.status_code == 201
+        saved = response.json()
+        created_ids.append(saved["prediction_id"])
+
+    params = {"limit": 2, "alert_level": saved["alert_level"]}
+    for offset, expected_ids in [(0, created_ids[:0:-1]), (2, created_ids[:1])]:
+        response = client.get(
+            "/api/v1/predictions", params={**params, "offset": offset}
+        )
+        assert response.status_code == 200
+        assert [row["prediction_id"] for row in response.json()] == expected_ids
+
+    for alert in {"high_priority", "review", "no_alert"} - {saved["alert_level"]}:
+        response = client.get(
+            "/api/v1/predictions",
+            params={**params, "alert_level": alert},
+        )
+        assert response.status_code == 200
+        assert response.json() == []
+
+
 def test_dashboard_summary_empty_database(client):
     response = client.get("/api/v1/dashboard/summary")
 
@@ -173,6 +207,126 @@ def test_dashboard_summary_empty_database(client):
     assert data["review_alerts"] == 0
     assert data["no_alert_predictions"] == 0
     assert data["average_failure_score"] == 0.0
+
+
+def test_asset_registry_creation_search_pagination_and_update(client):
+    registered = client.post("/api/v1/assets", json=PRESS)
+    assert registered.status_code == 201
+    assert registered.json() == {**PRESS, "created_at": registered.json()["created_at"]}
+    assert client.post("/api/v1/assets", json=PRESS).status_code == 409
+    other = {
+        **PRESS,
+        "asset_id": "motor-02",
+        "display_name": "Motor",
+        "machine_type": "H",
+    }
+    assert client.post("/api/v1/assets", json=other).status_code == 201
+
+    query = client.get("/api/v1/assets", params={"q": "NORTH", "machine_type": "L"})
+    assert [asset["asset_id"] for asset in query.json()] == ["press-01"]
+    assert client.get("/api/v1/assets", params={"q": "%"}).json() == []
+    assert client.get("/api/v1/assets", params={"limit": 1, "offset": 1}).json() == [
+        registered.json(),
+    ]
+    assert client.get("/api/v1/assets?limit=101").status_code == 422
+
+    update = client.patch(
+        "/api/v1/assets/press-01", json={"display_name": "Press One", "location": None}
+    )
+    assert update.status_code == 200
+    assert update.json()["description"] == PRESS["description"]
+    assert update.json()["location"] is None
+    assert client.get("/api/v1/assets/press-01").json() == update.json()
+    for changes in [{"display_name": None}, {"asset_id": "new"}, {"machine_type": "H"}]:
+        assert client.patch("/api/v1/assets/press-01", json=changes).status_code == 422
+
+
+def test_asset_validation_and_unregistered_or_mismatched_readings(client):
+    for changes in [
+        {"asset_id": "../press"},
+        {"display_name": "  "},
+        {"machine_type": "unknown"},
+    ]:
+        assert (
+            client.post("/api/v1/assets", json={**PRESS, **changes}).status_code == 422
+        )
+
+    for endpoint in ["", "/predictions", "/summary"]:
+        assert client.get(f"/api/v1/assets/missing{endpoint}").status_code == 404
+    assert (
+        client.post(
+            "/api/v1/predict", json={**SAMPLE_READING, "asset_id": "missing"}
+        ).status_code
+        == 404
+    )
+    assert client.post("/api/v1/assets", json=PRESS).status_code == 201
+    assert (
+        client.post(
+            "/api/v1/predict",
+            json={**SAMPLE_READING, "asset_id": "press-01", "machine_type": "M"},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            "/api/v1/predict", json={**SAMPLE_READING, "source": "bad-source"}
+        ).status_code
+        == 422
+    )
+    assert client.get("/api/v1/predictions").json() == []
+
+
+def test_asset_history_and_monitoring_exclude_unassigned_and_other_assets(client):
+    assert client.post("/api/v1/assets", json=PRESS).status_code == 201
+    assert (
+        client.post(
+            "/api/v1/assets", json={**PRESS, "asset_id": "press-02"}
+        ).status_code
+        == 201
+    )
+    path = "/api/v1/assets/press-01"
+    empty = client.get(f"{path}/summary").json()
+    assert empty["total_predictions"] == 0
+    assert empty["average_failure_score"] is None
+    assert empty["last_prediction_at"] is None
+
+    manual = client.post(
+        "/api/v1/predict",
+        json={**SAMPLE_READING, "asset_id": "press-01", "source": "manual"},
+    )
+    simulated = client.post(
+        "/api/v1/predict",
+        json={**SAMPLE_READING, "asset_id": "press-01", "source": "simulated"},
+    )
+    assert manual.status_code == simulated.status_code == 201
+    manual, simulated = manual.json(), simulated.json()
+    assert manual["asset_id"] == "press-01"
+    assert manual["source"] == "manual"
+    assert simulated["failure_score"] == manual["failure_score"]
+    assert (
+        client.post(
+            "/api/v1/predict", json={**SAMPLE_READING, "asset_id": "press-02"}
+        ).status_code
+        == 201
+    )
+    assert client.post("/api/v1/predict", json=SAMPLE_READING).status_code == 201
+
+    readings = client.get(f"{path}/predictions").json()
+    assert [row["prediction_id"] for row in readings] == [
+        simulated["prediction_id"],
+        manual["prediction_id"],
+    ]
+    assert client.get(f"{path}/predictions?limit=1&offset=1").json() == readings[1:]
+    assert client.get(f"{path}/predictions?source=simulated").json() == readings[:1]
+    assert client.get("/api/v1/predictions?asset_id=press-01").json() == readings
+    alerts = client.get(f"{path}/predictions?alerts_only=true").json()
+    assert alerts == [row for row in readings if row["alert_level"] != "no_alert"]
+
+    stats = client.get(f"{path}/summary").json()
+    assert stats["total_predictions"] == 2
+    assert stats["average_failure_score"] == pytest.approx(manual["failure_score"])
+    assert stats["last_prediction_at"] == readings[0]["created_at"]
+    assert stats["high_priority_alerts"] + stats["review_alerts"] == len(alerts)
 
 
 def test_dashboard_summary_after_prediction(client):

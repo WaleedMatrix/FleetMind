@@ -2,30 +2,31 @@
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
 
 import joblib
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
+from fleetmind.api.assets import get_asset_or_404
+from fleetmind.api.assets import router as assets_router
+from fleetmind.api.dependencies import DBSession
 from fleetmind.api.inference import (
     classify_alert,
     to_model_frame,
 )
 from fleetmind.api.schemas import (
+    AssetId,
     DashboardSummaryResponse,
     DashboardTrendsResponse,
-    MachineReading,
     PredictionHistoryResponse,
+    PredictionRequest,
     PredictionResponse,
+    ReadingSource,
 )
 from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
 from fleetmind.db.analytics import get_prediction_trends
-from fleetmind.db.database import get_db
+from fleetmind.db.history import prediction_history
 from fleetmind.db.models import PredictionHistory
-
-DBSession = Annotated[Session, Depends(get_db)]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -55,6 +56,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+app.include_router(assets_router)
 
 
 @app.get("/health")
@@ -74,11 +76,19 @@ def health(request: Request):
     status_code=201,
 )
 def predict(
-    reading: MachineReading,
+    reading: PredictionRequest,
     request: Request,
     db: DBSession,
 ):
     """Generate and persist a machine failure prediction."""
+
+    if reading.asset_id is not None:
+        asset = get_asset_or_404(db, reading.asset_id)
+        if asset.machine_type != reading.machine_type:
+            raise HTTPException(
+                status_code=422,
+                detail="Reading machine type must match the registered asset type",
+            )
 
     model = request.app.state.model
     features = to_model_frame(reading)
@@ -89,6 +99,8 @@ def predict(
     alert_level = classify_alert(score)
 
     record = PredictionHistory(
+        asset_id=reading.asset_id,
+        source=reading.source,
         machine_type=reading.machine_type,
         air_temperature_k=reading.air_temperature_k,
         process_temperature_k=reading.process_temperature_k,
@@ -109,19 +121,9 @@ def predict(
         db.rollback()
         raise
 
-    return PredictionResponse(
-        prediction_id=record.id,
-        model_version=record.model_version,
-        failure_score=record.failure_score,
-        predicted_failure=record.predicted_failure,
-        alert_level=record.alert_level,
-    )
+    return record
 
 
-@app.get(
-    "/api/v1/predictions",
-    response_model=list[PredictionHistoryResponse],
-)
 @app.get(
     "/api/v1/predictions",
     response_model=list[PredictionHistoryResponse],
@@ -131,6 +133,8 @@ def list_predictions(
     limit: int = 20,
     offset: int = 0,
     alert_level: str | None = None,
+    asset_id: AssetId | None = None,
+    source: ReadingSource | None = None,
 ):
     """Return paginated prediction history."""
 
@@ -158,34 +162,14 @@ def list_predictions(
             detail="Invalid alert level",
         )
 
-    statement = select(PredictionHistory)
-
-    if alert_level is not None:
-        statement = statement.where(PredictionHistory.alert_level == alert_level)
-
-    statement = (
-        statement.order_by(PredictionHistory.id.desc()).offset(offset).limit(limit)
+    return prediction_history(
+        db,
+        limit=limit,
+        offset=offset,
+        asset_id=asset_id,
+        alert_level=alert_level,
+        source=source,
     )
-
-    records = db.scalars(statement).all()
-
-    return [
-        PredictionHistoryResponse(
-            prediction_id=record.id,
-            machine_type=record.machine_type,
-            air_temperature_k=record.air_temperature_k,
-            process_temperature_k=record.process_temperature_k,
-            rotational_speed_rpm=record.rotational_speed_rpm,
-            torque_nm=record.torque_nm,
-            tool_wear_min=record.tool_wear_min,
-            failure_score=record.failure_score,
-            predicted_failure=record.predicted_failure,
-            alert_level=record.alert_level,
-            model_version=record.model_version,
-            created_at=record.created_at,
-        )
-        for record in records
-    ]
 
 
 @app.get(
