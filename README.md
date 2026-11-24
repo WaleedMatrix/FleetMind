@@ -40,3 +40,80 @@ educational machine learning benchmark.
 
 FleetMind is a demonstration project.
 It is not intended for operational maintenance decisions.
+
+## Asset Intelligence
+
+Open **Assets** from the dashboard to register equipment and see its recorded
+assessments, source labels, score trend, and recent alerts. The inference lab can
+assign a manual or simulated reading to a registered asset. The asset ID and
+machine type are fixed at registration so saved readings stay attributable.
+
+Predictions without an asset ID remain unassigned. Historical readings without
+provenance remain unknown. The sensor simulator labels new readings as simulated.
+API clients can declare telemetry, and FleetMind displays that declaration
+without independently verifying its origin. Model scores are uncalibrated.
+
+### Database migration
+
+1. Install the Python dependencies with `python -m pip install -r requirements.txt`.
+2. Set `DATABASE_URL` for the target PostgreSQL database. For local Docker
+   development, use the port and credentials in `.env.example` and start
+   PostgreSQL with `docker compose up -d db`. Back up an existing database
+   before upgrading it.
+3. From the repository root, run `python -m alembic upgrade head` before
+   deploying the updated API. Run `python -m alembic current` to confirm the
+   revision is `0002_asset_intelligence`.
+
+The online migration recognizes the pre-Alembic prediction table and retains
+its rows and ID sequence. It can also initialize an empty PostgreSQL database.
+The migration is forward-only. Previously saved predictions retain their sensor
+values, scores, timestamps, and IDs.
+
+Set `FLEETMIND_MIGRATION_TEST_DATABASE_URL` to a disposable development
+PostgreSQL database to run the fresh-install and legacy-upgrade tests with
+`python -m pytest tests/integration/test_migrations.py`.
+
+### Asset API
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/v1/assets` | Register an asset. |
+| `GET /api/v1/assets` | Search by ID, name, or location with `q`, filter by `machine_type`, and paginate with `limit` and `offset`. |
+| `GET /api/v1/assets/{asset_id}` | Read the asset record. |
+| `PATCH /api/v1/assets/{asset_id}` | Update display name, location, or description. |
+| `GET /api/v1/assets/{asset_id}/predictions` | List readings with `limit`, `offset`, `source`, `alert_level`, and `alerts_only` filters. |
+| `GET /api/v1/assets/{asset_id}/summary` | Get stored assessment counts, mean score, and latest timestamp. |
+
+The existing prediction endpoint accepts optional `asset_id` and `source`
+fields. Supported sources are `unknown`, `manual`, `simulated`, and `telemetry`.
+
+## Model Intelligence
+
+Use **Explain assessment** in a saved prediction’s drawer to view signed
+Tree SHAP attributions and their cumulative waterfall. The server uses the
+original reading, fitted preprocessing, and matching model version. It checks
+that the saved score is reproducible and that the baseline plus contributions
+matches the classifier’s raw margin. The margin and contributions are measured
+in log-odds. The logistic transform produces the uncalibrated score.
+
+`GET /api/v1/predictions/{prediction_id}/explanation` computes an explanation on
+demand. A missing prediction returns 404, a different saved model version
+returns 409, and unavailable or unverifiable explanations return 503.
+`GET /api/v1/model/intelligence` serves the model metadata, training-sample
+importance, and the existing version-matched held-out evaluation.
+
+To reproduce [the global SHAP report](reports/global_shap_xgboost_v1.json), install
+the updated requirements and run `python scripts/generate_global_shap.py` from
+the project root with the frozen artifact and original AI4I CSV available.
+The generator verifies the CSV digest, uses the existing stratified split,
+samples 512 training rows with seed 42, and applies path-dependent TreeExplainer.
+For machine type, it sums the one-hot contributions per row before taking the
+mean absolute value. The thermal gap stays separate because it is a fitted
+feature derived from process minus air temperature. The generator reads no
+held-out features for explanation and performs no fitting or tuning.
+
+The existing held-out report describes synthetic AI4I observations with a rare
+failure class. Scores have no probability calibration or validated
+time-to-failure interpretation. SHAP describes the fitted model’s behavior
+under its attribution assumptions. It cannot confirm physical causes, and
+maintenance decisions require human confirmation.

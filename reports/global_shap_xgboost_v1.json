@@ -1,0 +1,73 @@
+{
+  "model_version": "xgboost_v1",
+  "model_sha256": "8dcaddd194de846612b68fa42e34171003cc24457faaddad1f6c5c33ce0978f6",
+  "dataset_sha256": "dc6630cd9b1f0f853922fad78a1b6436570d3f1ec863f1dd5c4340ac56bc8a8e",
+  "dataset_split": "training",
+  "split_seed": 42,
+  "holdout_fraction": 0.2,
+  "sample_size": 512,
+  "sample_seed": 42,
+  "method": "TreeExplainer (tree_path_dependent)",
+  "output_unit": "raw_margin_log_odds",
+  "shap_version": "0.50.0",
+  "features": [
+    {
+      "name": "Type",
+      "label": "Machine type",
+      "transformed_features": [
+        "categorical__Type_H",
+        "categorical__Type_L",
+        "categorical__Type_M"
+      ],
+      "mean_absolute_shap": 0.16197190322679944
+    },
+    {
+      "name": "Air temperature [K]",
+      "label": "Air temperature",
+      "transformed_features": [
+        "numeric__Air temperature [K]"
+      ],
+      "mean_absolute_shap": 0.3984457563547039
+    },
+    {
+      "name": "Process temperature [K]",
+      "label": "Process temperature",
+      "transformed_features": [
+        "numeric__Process temperature [K]"
+      ],
+      "mean_absolute_shap": 0.35248459755212025
+    },
+    {
+      "name": "Rotational speed [rpm]",
+      "label": "Rotational speed",
+      "transformed_features": [
+        "numeric__Rotational speed [rpm]"
+      ],
+      "mean_absolute_shap": 1.1048300176398698
+    },
+    {
+      "name": "Torque [Nm]",
+      "label": "Torque",
+      "transformed_features": [
+        "numeric__Torque [Nm]"
+      ],
+      "mean_absolute_shap": 2.0894804572417343
+    },
+    {
+      "name": "Tool wear [min]",
+      "label": "Tool wear",
+      "transformed_features": [
+        "numeric__Tool wear [min]"
+      ],
+      "mean_absolute_shap": 1.9344231286086142
+    },
+    {
+      "name": "Temperature gap [K]",
+      "label": "Thermal gap",
+      "transformed_features": [
+        "numeric__Temperature gap [K]"
+      ],
+      "mean_absolute_shap": 0.7219501337749534
+    }
+  ]
+}
