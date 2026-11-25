@@ -2,6 +2,7 @@
 
 import { useEngineering } from "@/components/auth-shell";
 
+import { PORTFOLIO } from "@/lib/profile";
 import Link from "next/link";
 import { memo, startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { Activity, ArrowLeft, ArrowUpRight, Factory, Pause, Play, Radio, RefreshCw, ShieldAlert, Zap } from "lucide-react";
@@ -18,8 +19,8 @@ import { PredictionInvestigation } from "./prediction-investigation";
 import { TelemetryMetrics, unavailableText } from "./telemetry-metrics";
 
 const CONNECTION: Record<Connection, string> = {
-  connecting: "Connecting", live: "Live assessments", reconnecting: "Reconnecting",
-  paused: "Feed paused", unavailable: "Live feed unavailable",
+  connecting: "Connecting", live: PORTFOLIO ? "Replaying simulated telemetry" : "Live assessments", reconnecting: "Reconnecting",
+  paused: "Feed paused", unavailable: "Assessment feed unavailable", ended: "Replay complete",
 };
 
 const CATEGORIES = {
@@ -114,7 +115,7 @@ export function TelemetryWorkspace() {
 
   function retry() {
     setReconnect((count) => count + 1);
-    if (!available) reset();
+    if (PORTFOLIO || !available) reset();
   }
 
   return <main className="telemetry-shell">
@@ -132,7 +133,7 @@ export function TelemetryWorkspace() {
       <header className="telemetry-heading">
         <div>
           <h1>Telemetry <span>Command Center</span></h1>
-          <p>Committed assessments and the infrastructure that processes them.</p>
+          <p>{PORTFOLIO ? "Replay recorded simulator assessments. Timestamps describe the simulated sequence." : "Committed assessments and the infrastructure that processes them."}</p>
         </div>
         <div className="telemetry-actions">
           <span className="telemetry-connection" role="status" data-state={state}>
@@ -143,12 +144,12 @@ export function TelemetryWorkspace() {
             {paused ? "Resume feed" : "Pause feed"}
           </button>
           <button type="button" className="telemetry-button" ref={focusFallback} onClick={retry} disabled={paused}>
-            <RefreshCw size={16} aria-hidden="true" /> Reconnect
+            <RefreshCw size={16} aria-hidden="true" /> {PORTFOLIO ? "Replay from start" : "Reconnect"}
           </button>
         </div>
       </header>
       {connection.detail && !paused && available && <p className="telemetry-message" role="status">{connection.detail}</p>}
-      <TelemetryMetrics revision={reconnect} />
+      {PORTFOLIO ? <p><Link className="asset-inline-link" href="/showcase">View measured local telemetry benchmarks</Link></p> : <TelemetryMetrics revision={reconnect} />}
       <div className="telemetry-bottom">
         <section className="panel telemetry-feed" aria-labelledby="telemetry-feed-title">
           <div className="telemetry-panel-heading"><div><Activity size={19} /><h2 id="telemetry-feed-title">Assessment feed</h2></div>

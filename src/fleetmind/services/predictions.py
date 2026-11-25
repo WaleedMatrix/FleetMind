@@ -1,7 +1,6 @@
 """Shared asset validation, frozen inference, and prediction persistence."""
 
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Literal
 
 import joblib
@@ -9,12 +8,12 @@ from sqlalchemy.orm import Session
 
 from fleetmind.api.inference import classify_alert, to_model_frame
 from fleetmind.api.schemas import MachineReading, ReadingSource
+from fleetmind.artifacts import MODEL_PATH as MODEL_PATH
+from fleetmind.artifacts import PROJECT_ROOT as PROJECT_ROOT
+from fleetmind.artifacts import verify_artifacts
 from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
 from fleetmind.db.models import Asset, PredictionHistory
 from fleetmind.observability import timed
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-MODEL_PATH = PROJECT_ROOT / "artifacts" / "models" / f"{MODEL_VERSION}.joblib"
 
 
 class AssetValidationError(ValueError):
@@ -23,8 +22,7 @@ class AssetValidationError(ValueError):
 
 
 def load_frozen_model():
-    if not MODEL_PATH.is_file():
-        raise FileNotFoundError(f"Model artifact not found: {MODEL_PATH}")
+    verify_artifacts()
     return joblib.load(MODEL_PATH)
 
 

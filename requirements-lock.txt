@@ -24,8 +24,7 @@ defusedxml==0.7.1
 executing==2.3.0
 fastapi==0.162.2
 fastjsonschema==2.22.3
-# Editable install with no version control (fleetmind==0.1.0)
--e d:\portfolio_projects\fleetmind
+-e .
 fonttools==4.68.0
 fqdn==1.6.0
 h11==0.16.0
@@ -91,7 +90,7 @@ python-dateutil==4.0.0
 python-dotenv==1.2.4
 python-json-logger==4.2.0
 pytz==2026.6
-pywinpty==3.1.2
+pywinpty==3.1.2; sys_platform == "win32"
 PyYAML==6.0.3
 pyzmq==27.3.0
 referencing==0.37.0

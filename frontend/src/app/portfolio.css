@@ -1,0 +1,19 @@
+.portfolio-bar { background: #132431; border-bottom-color: #345263; flex-wrap: wrap; }
+.portfolio-bar > div, .portfolio-bar nav { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem 1.1rem; }
+.portfolio-bar strong { color: #dff7f4; }
+.portfolio-bar small { color: #b2c6d5; font-size: .78rem; }
+.portfolio-bar a { color: #8de9d4; font-size: .82rem; text-decoration: underline; text-underline-offset: .18em; }
+.portfolio-content { max-width: 1180px; margin-inline: auto; }
+.portfolio-copilot-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 1rem; align-items: start; }
+.portfolio-questions { display: grid; gap: .55rem; }
+.portfolio-questions button { text-align: left; justify-content: flex-start; }
+.portfolio-questions button[aria-pressed="true"] { color: #83e8ce; background: #173833; border-color: #599c92; }
+.portfolio-answer { white-space: pre-wrap; line-height: 1.6; }
+.portfolio-source { display: block; color: #9ab4c9; overflow-wrap: anywhere; }
+.portfolio-flow { display: grid; gap: .9rem; padding-left: 1.3rem; }
+.portfolio-flow span { display: block; color: #b2c6d5; padding-top: .18rem; }
+.portfolio-select { display: grid; gap: .35rem; margin: .8rem 0; color: #d9e5ee; }
+.portfolio-select select { background: #11202c; color: #e6f5ff; border: 1px solid #40596c; border-radius: .48rem; padding: .5rem; }
+@media (max-width: 710px) {
+  .portfolio-copilot-grid { grid-template-columns: minmax(0,1fr); }
+}

@@ -6,6 +6,7 @@ import "./model-intelligence.css";
 import "./copilot.css";
 import "./telemetry.css";
 import "./security.css";
+import "./portfolio.css";
 import "../components/alert-intelligence.css";
 import { AuthShell } from "@/components/auth-shell";
 

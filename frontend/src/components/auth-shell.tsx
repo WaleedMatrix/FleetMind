@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, CircleUserRound, LogOut, ShieldCheck } from "lucide-react";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { PORTFOLIO } from "@/lib/profile";
 import { FleetMindApiError } from "@/lib/api";
 import { change, getUser, roleLabels, type User } from "@/lib/security";
 
@@ -79,5 +80,15 @@ function AuthenticatedShell({ children }: { children: ReactNode }) {
 
 export function AuthShell({ children }: { children: ReactNode }) {
   const path = usePathname();
+  if (PORTFOLIO) return <>
+    <div className="security-bar portfolio-bar">
+      <div><strong>FleetMind Portfolio</strong><small>Simulated readings · precomputed explanations</small></div>
+      <nav aria-label="Portfolio">
+        <Link href="/">Dashboard</Link><Link href="/assets">Assets</Link><Link href="/telemetry">Telemetry replay</Link>
+        <Link href="/model-intelligence">Model Intelligence</Link><Link href="/copilot">Copilot examples</Link><Link href="/showcase">Architecture</Link>
+      </nav>
+    </div>
+    {children}
+  </>;
   return path === "/login" ? children : <AuthenticatedShell>{children}</AuthenticatedShell>;
 }

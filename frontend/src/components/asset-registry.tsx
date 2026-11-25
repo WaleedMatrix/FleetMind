@@ -3,6 +3,7 @@
 import { useEngineering } from "@/components/auth-shell";
 
 import { useState } from "react";
+import { PORTFOLIO } from "@/lib/profile";
 import Link from "next/link";
 import { ChevronRight, Factory, MapPin } from "lucide-react";
 import { assetPath, assetSearchPath, type Asset, type MachineType } from "@/lib/assets";
@@ -27,7 +28,7 @@ export function AssetRegistry() {
   return (
     <>
       <header className="page-heading">
-        <div><h1>Asset <span>intelligence.</span></h1><p>Register equipment and inspect its recorded assessments.</p></div>
+        <div><h1>Asset <span>intelligence.</span></h1><p>{PORTFOLIO ? "Inspect fictional assets and their recorded simulator assessments." : "Register equipment and inspect its recorded assessments."}</p></div>
       </header>
       <section className={canEngineer ? "asset-registry-grid" : ""} aria-label="Asset registry">
         <div className="panel asset-panel">

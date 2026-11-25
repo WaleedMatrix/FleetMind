@@ -1,6 +1,7 @@
 "use client";
 
 import { Activity, RefreshCw, ShieldCheck } from "lucide-react";
+import { PORTFOLIO } from "@/lib/profile";
 import { useState } from "react";
 import { READING_SOURCES, timestampLabel, type ReadingSource } from "@/lib/predictions";
 import { useFleetMindQuery } from "@/lib/use-fleetmind-query";
@@ -56,7 +57,7 @@ function BandShare({ value, actual }: { value: number | null; actual?: boolean }
 }
 
 export function ModelHealth() {
-  const [source, setSource] = useState<ReadingSource>("telemetry");
+  const [source, setSource] = useState<ReadingSource>(PORTFOLIO ? "simulated" : "telemetry");
   const [hours, setHours] = useState("168");
   const [feature, setFeature] = useState<Feature>("failure_score");
   const [revision, setRevision] = useState(0);
@@ -113,7 +114,7 @@ export function ModelHealth() {
           </tr>)}</tbody>
         </table>
       </div>}
-      <p>Windows use assessment time. The comparison measures distribution changes. Live model quality requires verified failure outcomes.</p>
+      <p>{PORTFOLIO ? "This comparison uses the recorded simulator assessment window. " : "Windows use assessment time. "} The comparison measures distribution changes. Live model quality requires verified failure outcomes.</p>
     </>}
   </section>;
 }

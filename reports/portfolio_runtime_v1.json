@@ -1,0 +1,27 @@
+{
+    "profile":  "docker desktop linux x86_64, offline install of the exact hosted lock",
+    "cold_ready_seconds_including_container_launch":  106.124,
+    "process_status":  [
+                           "Uid:\t10001\t10001\t10001\t10001",
+                           "VmHWM:\t  192540 kB",
+                           "VmRSS:\t  192540 kB",
+                           "Threads:\t3"
+                       ],
+    "cgroup_memory_bytes":  {
+                                "current":  130318336,
+                                "peak":  134750208,
+                                "max":  536870912
+                            },
+    "cgroup_cpu_max":  "10000 100000",
+    "python_site_packages_mib":  399,
+    "http":  {
+                 "loopback_request_count":  29,
+                 "maximum_absolute_score_difference":  0.0,
+                 "latency_ms":  {
+                                    "p50":  104.95,
+                                    "p95":  198.47,
+                                    "max":  200.09
+                                },
+                 "shared_rate_limit_http_status":  429
+             }
+}

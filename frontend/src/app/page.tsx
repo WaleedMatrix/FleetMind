@@ -19,6 +19,7 @@ import { useEngineering } from "@/components/auth-shell";
 import { PredictionHistory } from "@/components/prediction-history";
 import { fleetMindRequest } from "@/lib/api";
 import type { Asset } from "@/lib/assets";
+import { PORTFOLIO } from "@/lib/profile";
 import { followTelemetry } from "@/lib/telemetry";
 import {
   PREDICTIONS_PER_PAGE, scoreText,
@@ -216,7 +217,7 @@ export default function Home() {
     };
   }, [interval, filter, offset]);
 
-  useEffect(() => followTelemetry({
+  useEffect(() => PORTFOLIO ? undefined : followTelemetry({
     onBatch: (items) => { if (items.length) refreshFromTelemetry.current?.(); },
   }), []);
 
@@ -279,13 +280,13 @@ export default function Home() {
           <Link className="nav-link" href="/assets"><Factory size={18} aria-hidden="true" /> Assets</Link>
           <Link className="nav-link" href="/telemetry"><Radio size={18} aria-hidden="true" /> Telemetry</Link>
           <Link className="nav-link" href="/model-intelligence"><BrainCircuit size={18} aria-hidden="true" /> Model Intelligence</Link>
-          {canEngineer && <Link className="nav-link" href="/copilot"><Sparkles size={18} aria-hidden="true" /> Copilot</Link>}
+          {(canEngineer || PORTFOLIO) && <Link className="nav-link" href="/copilot"><Sparkles size={18} aria-hidden="true" /> Copilot</Link>}
           {canEngineer && <a className="nav-link" href="#evaluate"><SlidersHorizontal size={18}/> Inference lab</a>}
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-system">
             <div className="system-header"><span className="system-icon"><Radio size={16}/></span><span>System status</span></div>
-            <div className="system-state"><span className={`live-dot ${connected ? "" : "offline-dot"}`} />{connected ? "Model serving" : "Connection unavailable"}</div>
+            <div className="system-state"><span className={`live-dot ${connected ? "" : "offline-dot"}`} />{connected ? (PORTFOLIO ? "Snapshot ready" : "Model serving") : "Connection unavailable"}</div>
             <p>{connected ? health?.model_version : "Start FastAPI to connect"}</p>
           </div>
             <div className="sidebar-footer"><CircleDot size={13}/> Maintenance workspace</div>
@@ -299,7 +300,7 @@ export default function Home() {
             {canEngineer && <Link className="copilot-button copilot-new dashboard-copilot-link" href="/copilot">
               <Sparkles size={16} aria-hidden="true" /> Copilot
             </Link>}
-            <span className="topbar-tag"><span className="live-dot"/> LOCAL INSTANCE</span>
+            <span className="topbar-tag"><span className="live-dot"/> {PORTFOLIO ? "PORTFOLIO" : "LOCAL INSTANCE"}</span>
             <div className="avatar">FM</div>
           </div>
         </header>
@@ -307,20 +308,20 @@ export default function Home() {
         <div className="content-container">
           <div className="page-heading">
             <div><div className="eyebrow"><span className="eyebrow-rule"/> COMMAND CENTER <span className="eyebrow-secondary">/ OVERVIEW</span></div><h1>Operational <span>intelligence.</span></h1><p>Your machine assessment pipeline, monitored in one place.</p></div>
-            <div className="heading-controls"><div className={`connection-pill ${connected ? "connected" : "disconnected"}`}><span className="live-dot"/>{connected ? "API connected" : "API disconnected"}</div><button className="refresh-button" onClick={() => { void refreshDashboard.current?.(); }} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw size={16} className={refreshing ? "spinning" : ""}/><span>Refresh</span></button></div>
+            <div className="heading-controls"><div className={`connection-pill ${connected ? "connected" : "disconnected"}`}><span className="live-dot"/>{connected ? (PORTFOLIO ? "Recorded assessments" : "API connected") : (PORTFOLIO ? "Snapshot unavailable" : "API disconnected")}</div><button className="refresh-button" onClick={() => { void refreshDashboard.current?.(); }} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw size={16} className={refreshing ? "spinning" : ""}/><span>Refresh</span></button></div>
           </div>
 
           {error && <div className="error-banner" role="alert"><AlertTriangle size={18}/><div><strong>Unable to update dashboard</strong><p>{error}. Confirm FastAPI is running on port 8000.</p></div><button onClick={() => { void refreshDashboard.current?.(); }}>Retry <ArrowRight size={14}/></button></div>}
 
           <section className="hero-panel" aria-label="FleetMind pipeline overview">
-            <div className="hero-copy"><div className="hero-kicker"><Sparkles size={14}/> MODEL OPERATIONS / LIVE OVERVIEW</div><h2>Every signal.<br/><span>One clear decision.</span></h2><p>Turn raw sensor readings into prioritized maintenance assessments — and keep an auditable record of every prediction.</p>{canEngineer && <a href="#evaluate" className="hero-cta">Run an assessment <ArrowUpRight size={17}/></a>}</div>
-            <div className="hero-art" aria-hidden="true"><div className="halo halo-one"/><div className="halo halo-two"/><div className="halo halo-three"/><div className="halo-center"><Activity size={49} strokeWidth={1.4}/></div><div className="signal-node node-one"/><div className="signal-node node-two"/><div className="signal-node node-three"/><div className="hero-art-label label-top">SENSOR INTAKE <span>● LIVE</span></div><div className="hero-art-label label-bottom">MODEL / XGBOOST V1</div></div>
+            <div className="hero-copy"><div className="hero-kicker"><Sparkles size={14}/> {PORTFOLIO ? "MODEL OPERATIONS / RECORDED OVERVIEW" : "MODEL OPERATIONS / LIVE OVERVIEW"}</div><h2>Every signal.<br/><span>One clear decision.</span></h2><p>Turn raw sensor readings into prioritized maintenance assessments — and keep an auditable record of every prediction.</p>{PORTFOLIO ? <Link href="/showcase" className="hero-cta">Explore the architecture <ArrowUpRight size={17}/></Link> : canEngineer && <a href="#evaluate" className="hero-cta">Run an assessment <ArrowUpRight size={17}/></a>}</div>
+            <div className="hero-art" aria-hidden="true"><div className="halo halo-one"/><div className="halo halo-two"/><div className="halo halo-three"/><div className="halo-center"><Activity size={49} strokeWidth={1.4}/></div><div className="signal-node node-one"/><div className="signal-node node-two"/><div className="signal-node node-three"/><div className="hero-art-label label-top">SENSOR INTAKE <span>{PORTFOLIO ? "● SIMULATED" : "● LIVE"}</span></div><div className="hero-art-label label-bottom">MODEL / XGBOOST V1</div></div>
           </section>
 
           <section className="kpi-section" aria-label="Key metrics">
-            <div className="section-head"><div><span className="section-overline">01 / SIGNAL HEALTH</span><h2>System snapshot</h2></div><span className="section-note"><span className="small-live-dot"/> {lastSync ? `Updated ${lastSync.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}` : "Awaiting first sync"}</span></div>
+            <div className="section-head"><div><span className="section-overline">01 / SIGNAL HEALTH</span><h2>System snapshot</h2></div><span className="section-note"><span className="small-live-dot"/> {PORTFOLIO ? "Recorded simulator run" : lastSync ? `Updated ${lastSync.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}` : "Awaiting first sync"}</span></div>
             <div className="stat-grid">
-              <StatCard label="Total assessments" value={loading && !summary ? "—" : (summary?.total_predictions ?? 0).toLocaleString()} helper="Predictions stored" icon={<ScanLine size={20}/>} tone="blue"/>
+              <StatCard label="Total assessments" value={loading && !summary ? "—" : (summary?.total_predictions ?? 0).toLocaleString()} helper={PORTFOLIO ? "Simulated readings scored" : "Predictions stored"} icon={<ScanLine size={20}/>} tone="blue"/>
               <StatCard label="High-priority alerts" value={loading && !summary ? "—" : String(summary?.high_priority_alerts ?? 0)} helper={highShare} icon={<AlertTriangle size={20}/>} tone="red"/>
               <StatCard label="Review queue" value={loading && !summary ? "—" : String(summary?.review_alerts ?? 0)} helper="Assessments needing review" icon={<Bell size={20}/>} tone="amber"/>
               <StatCard label="Mean failure score" value={loading && !summary ? "—" : scoreText(summary?.average_failure_score ?? 0)} helper="Raw model score · uncalibrated" icon={<Gauge size={20}/>} tone="mint"/>

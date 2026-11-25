@@ -306,9 +306,9 @@ Container images and the host OS need their own vulnerability review.
 | [PYSEC-2025-195 and CVE-2025-3001](https://github.com/advisories/GHSA-qfhq-4f3w-5fph) | 2.10.0 in the observed scan |
 | [PYSEC-2026-2286, PYSEC-2026-1856, and CVE-2026-24747](https://github.com/advisories/GHSA-63cw-57p8-fm3p) | 2.10.0 |
 
-## Validation results
+## Milestone 11B validation results
 
-The final run passed 94 Python tests with disposable PostgreSQL and Redpanda,
+The Milestone 11B run passed 94 Python tests with disposable PostgreSQL and Redpanda,
 four Next.js proxy tests, and all 51 scripted Copilot cases. Ruff, Alembic
 schema checks, ESLint, standalone TypeScript, and the production Next.js build
 passed. The two frozen XGBoost hashes matched before and after validation.
@@ -333,3 +333,5 @@ against a fresh disposable browser database for each variant. Use Node.js with
 built-in WebSocket support and Microsoft Edge. Set `DATABASE_URL` to a fresh
 `fleetmind_m11b_browser_*_test` database and set
 `FLEETMIND_TELEMETRY_TEST_BOOTSTRAP` to the disposable broker.
+
+See [v1.0.0 release validation](release-validation.md) for the later regression and hosted results.

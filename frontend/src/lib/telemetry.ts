@@ -1,9 +1,11 @@
 import { announceSessionExpiry, fleetMindRequest } from "./api";
 import type { AlertFilter, Prediction } from "./predictions";
 
+import { PORTFOLIO } from "./profile";
+
 export type StorageState = "ready" | "migration_required" | "unavailable";
 export type Availability = "available" | "unavailable" | "stale" | "unknown" | "stopped";
-export type Connection = "connecting" | "live" | "reconnecting" | "paused" | "unavailable";
+export type Connection = "connecting" | "live" | "reconnecting" | "paused" | "unavailable" | "ended";
 
 export type AssessmentEvent = {
   cursor: string;
@@ -72,6 +74,26 @@ type FeedHandlers = {
 };
 
 export function followTelemetry(handlers: FeedHandlers) {
+  if (PORTFOLIO) {
+    let timer = 0;
+    let stopped = false;
+    let cursor = Number(handlers.cursor ?? 0);
+    void import("./portfolio").then(({ replayBatch }) => {
+      if (stopped) return;
+      handlers.onStatus?.("live");
+      const replay = () => {
+        const next = replayBatch(handlers.query ?? "", cursor);
+        cursor = Number(next.cursor);
+        handlers.onBatch(next.items, next.cursor);
+        if (next.done) handlers.onStatus?.("ended");
+        else timer = window.setTimeout(replay, 900);
+      };
+      timer = window.setTimeout(replay, 900);
+    }).catch(() => {
+      if (!stopped) handlers.onStatus?.("unavailable", "The recorded fixture could not load.");
+    });
+    return () => { stopped = true; window.clearTimeout(timer); };
+  }
   let last = handlers.cursor;
   let source: EventSource | null = null;
   let pending: AssessmentEvent[] = [];

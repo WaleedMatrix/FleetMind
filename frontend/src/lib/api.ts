@@ -1,3 +1,5 @@
+import { PORTFOLIO } from "./profile";
+
 export class FleetMindApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
@@ -19,8 +21,17 @@ export function browserHeaders(options?: RequestInit) {
 }
 
 export async function fleetMindRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  if (PORTFOLIO && path !== "demo/infer") {
+    if (options?.method && options.method !== "GET") throw new FleetMindApiError("The portfolio is read-only.", 405);
+    options?.signal?.throwIfAborted();
+    const { readPortfolio } = await import("./portfolio");
+    options?.signal?.throwIfAborted();
+    const result = readPortfolio(path);
+    if (result === undefined) throw new FleetMindApiError("This record is unavailable in the portfolio.", 404);
+    return result as T;
+  }
   const response = await fetch(`/api/fleetmind/${path}`, {
-    ...options, headers: browserHeaders(options), cache: "no-store",
+    ...options, headers: PORTFOLIO ? options?.headers : browserHeaders(options), cache: "no-store",
   });
   await assertFleetMindResponse(response, path !== "auth/login");
   if (response.status === 204) return undefined as T;

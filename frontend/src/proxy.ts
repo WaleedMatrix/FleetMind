@@ -1,3 +1,4 @@
+import { PORTFOLIO } from "@/lib/profile";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionCookies, upstreamUrl } from "@/lib/server-upstream";
 
@@ -9,6 +10,10 @@ function localRedirect(request: NextRequest, path: string) {
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  if (PORTFOLIO) {
+    return /^\/(?:login|account|admin|access-denied)(?:\/|$)/.test(path)
+      ? localRedirect(request, "/") : NextResponse.next();
+  }
   const cookies = sessionCookies(request.headers.get("cookie"));
   if (path === "/login" && !cookies) return NextResponse.next();
   const login = () => localRedirect(request, "/login?next=" + encodeURIComponent(path + request.nextUrl.search));

@@ -3,6 +3,7 @@
  * This avoids browser CORS issues and keeps the API host out of client code.
  * Only explicitly supported FleetMind paths are forwarded.
  */
+import { PORTFOLIO } from "@/lib/profile";
 import { NextRequest, NextResponse } from "next/server";
 import { sessionCookies, upstreamUrl } from "@/lib/server-upstream";
 
@@ -46,9 +47,9 @@ const serviceDetail = new RegExp(`^admin/service-credentials/${requestId}$`);
 const MAX_BODY = 65_536;
 const COOKIE_RESPONSE = /^(?:__Host-)?fleetmind_(?:session|csrf)=/;
 
-async function boundedBody(request: NextRequest, signal: AbortSignal) {
+async function boundedBody(request: NextRequest, signal: AbortSignal, limit = MAX_BODY) {
   const length = request.headers.get("content-length");
-  if (length !== null && (!/^[0-9]{1,10}$/.test(length) || Number(length) > MAX_BODY)) return null;
+  if (length !== null && (!/^[0-9]{1,10}$/.test(length) || Number(length) > limit)) return null;
   if (!request.body) return Buffer.alloc(0);
   const reader = request.body.getReader();
   const cancel = () => { void reader.cancel().catch(() => undefined); };
@@ -62,7 +63,7 @@ async function boundedBody(request: NextRequest, signal: AbortSignal) {
       signal.throwIfAborted();
       if (done) return Buffer.concat(chunks, total);
       total += value.byteLength;
-      if (total > MAX_BODY) {
+      if (total > limit) {
         cancel();
         return null;
       }
@@ -74,12 +75,58 @@ async function boundedBody(request: NextRequest, signal: AbortSignal) {
   }
 }
 
+async function portfolioInference(request: NextRequest) {
+  const respond = (detail: string, status: number, headers: Record<string, string> = {}) =>
+    NextResponse.json({ detail }, { status, headers: { "Cache-Control": "no-store", ...headers } });
+  if (request.method !== "POST") return respond("Method not allowed", 405, { Allow: "POST" });
+  if (request.headers.get("content-type")?.split(";", 1)[0].toLowerCase() !== "application/json") {
+    return respond("Use a JSON sensor reading.", 415);
+  }
+  const unavailable = () => respond("Live inference is asleep or unavailable. Try again shortly.", 503);
+  try {
+    const origin = new URL(process.env.FLEETMIND_PORTFOLIO_API_URL ?? "");
+    const render = origin.protocol === "https:" && /^[a-z0-9-]+\.onrender\.com$/.test(origin.hostname) && !origin.port;
+    const loopback = origin.protocol === "http:" && origin.hostname === "127.0.0.1";
+    if ((!render && !loopback) || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== "/") {
+      return unavailable();
+    }
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(30_000)]);
+    const body = await boundedBody(request, signal, 2048);
+    if (body === null) return respond("The reading exceeds 2 KiB.", 413);
+    const response = await fetch(new URL("/infer", origin), {
+      method: "POST", body, headers: { "Content-Type": "application/json" },
+      redirect: "manual", cache: "no-store", signal,
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      if (response.status === 429) {
+        const retry = response.headers.get("retry-after");
+        return respond("The shared demo is busy or rate-limited. Try again shortly.", 429,
+          retry && /^[0-9]{1,3}$/.test(retry) ? { "Retry-After": retry } : {});
+      }
+      if ([408, 413, 415, 422].includes(response.status)) return respond("The demo reading was rejected.", response.status);
+      return unavailable();
+    }
+    const { failure_score, predicted_failure, alert_level, model_version } = await response.json();
+    if (typeof failure_score !== "number" || !(failure_score >= 0 && failure_score <= 1)
+      || typeof predicted_failure !== "boolean" || !["high_priority", "review", "no_alert"].includes(alert_level)
+      || typeof model_version !== "string" || !/^[\w.-]{1,40}$/.test(model_version)) return unavailable();
+    return NextResponse.json({ failure_score, predicted_failure, alert_level, model_version }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch {
+    return unavailable();
+  }
+}
+
 async function forward(request: NextRequest, context: RouteContext) {
   const { path } = await context.params;
   if (path.some((part) => !/^[A-Za-z0-9_-]+$/.test(part))) {
     return NextResponse.json({ detail: "Unknown endpoint" }, { status: 404 });
   }
   const subpath = path.join("/");
+  if (PORTFOLIO) return subpath === "demo/infer"
+    ? portfolioInference(request) : NextResponse.json({ detail: "Unknown endpoint" }, { status: 404 });
   const assetDetail = /^assets\/[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
   const assetMonitoring = /^assets\/[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}\/(predictions|summary)$/;
   const telemetryStream = subpath === "telemetry/stream";

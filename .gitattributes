@@ -1,0 +1,3 @@
+# Keep the frozen model and metadata byte-for-byte across platforms.
+artifacts/models/xgboost_v1.joblib -text
+artifacts/models/xgboost_v1.metadata.json -text whitespace=cr-at-eol

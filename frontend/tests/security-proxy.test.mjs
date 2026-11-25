@@ -19,6 +19,7 @@ function load(relative, symbols = {}) {
     AbortSignal, Buffer, Headers, URL, crypto, exports, process: { env: { FLEETMIND_API_URL: "http://backend.invalid:8000" } },
     require(id) {
       if (id === "next/server") return { NextResponse: BridgeResponse };
+      if (id === "@/lib/profile") return { PORTFOLIO: symbols.process?.env.NEXT_PUBLIC_FLEETMIND_MODE === "portfolio" };
       if (id === "@/lib/server-upstream") return load("lib/server-upstream.ts");
       throw new Error("Unexpected import " + id);
     },
@@ -102,4 +103,51 @@ test("telemetry preserves cursor and streams the backend response", async () => 
   assert.equal(await result.text(), "event: ready\n\n");
   assert.equal(result.headers.get("x-accel-buffering"), "no");
   assert.equal(result.headers.get("x-request-id"), "a".repeat(32));
+});
+
+const portfolioRoute = (fetch, origin = "https://demo.onrender.com") =>
+  load("app/api/fleetmind/[...path]/route.ts", {
+    fetch, process: { env: { NEXT_PUBLIC_FLEETMIND_MODE: "portfolio", FLEETMIND_PORTFOLIO_API_URL: origin } },
+  });
+const demoCall = (body = "{}") => call("POST", ["demo", "infer"], {
+  body, headers: { "Content-Type": "application/json", Cookie: "fleetmind_session=private", Authorization: "Bearer private" },
+});
+
+test("portfolio blocks secured API paths and all operations except demo inference", async () => {
+  const bridge = portfolioRoute(() => assert.fail("A private path reached the upstream"));
+  for (const path of [["auth", "me"], ["copilot", "conversations"], ["predictions"], ["telemetry", "stream"]]) {
+    assert.equal((await bridge.GET(...call("GET", path))).status, 404);
+  }
+  assert.equal((await bridge.POST(...call("POST", ["predict"]))).status, 404);
+  assert.equal((await bridge.GET(...call("GET", ["demo", "infer"]))).status, 405);
+});
+
+test("portfolio sends only JSON to the exact inference origin and sanitizes its response", async () => {
+  const bridge = portfolioRoute((target, options) => {
+    assert.equal(target.href, "https://demo.onrender.com/infer");
+    assert.equal(options.redirect, "manual");
+    assert.equal(options.cache, "no-store");
+    assert.equal(options.headers.Cookie, undefined);
+    assert.equal(options.headers.Authorization, undefined);
+    return Response.json({ failure_score: 0.65, predicted_failure: true, alert_level: "high_priority",
+      model_version: "xgboost_v1", internal_field: "private" }, { headers: { "Set-Cookie": "session=private" } });
+  });
+  const result = await bridge.POST(...demoCall());
+  assert.equal(result.status, 200);
+  assert.equal((await result.json()).internal_field, undefined);
+  assert.equal(result.headers.get("set-cookie"), null);
+  assert.equal(result.headers.get("cache-control"), "no-store");
+});
+
+test("portfolio retains bounded unavailable and rate limit responses", async () => {
+  const noFetch = () => assert.fail("Unconfigured or oversized request reached upstream");
+  assert.equal((await portfolioRoute(noFetch, "https://demo.onrender.com.invalid").POST(...demoCall())).status, 503);
+  assert.equal((await portfolioRoute(noFetch).POST(...demoCall("x".repeat(2049)))).status, 413);
+  const redirect = () => new Response(null, { status: 302, headers: { Location: "https://other.invalid" } });
+  assert.equal((await portfolioRoute(redirect).POST(...demoCall())).status, 503);
+  const busy = () => Response.json({ detail: "internal" }, { status: 429, headers: { "Retry-After": "22" } });
+  const response = await portfolioRoute(busy).POST(...demoCall());
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get("retry-after"), "22");
+  assert.doesNotMatch((await response.json()).detail, /internal/);
 });
