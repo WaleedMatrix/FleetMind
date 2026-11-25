@@ -3,6 +3,7 @@
 import os
 import random
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime
 from threading import Barrier, Event, Timer
 from time import monotonic
@@ -23,6 +24,7 @@ from fleetmind.telemetry.broker import (
     kafka,
 )
 from fleetmind.telemetry.contracts import DeadLetter
+from fleetmind.telemetry.live import FeedFilter, FeedReader
 from fleetmind.telemetry.storage import TelemetryAssessment, TelemetryStore
 from fleetmind.telemetry.worker import TelemetryWorker, WorkerHalt
 from scripts.produce_telemetry import simulate_event
@@ -211,6 +213,53 @@ def test_concurrent_database_delivery_has_one_assessment(environment):
             )
             == 1
         )
+
+
+def test_two_consumer_process_paths_share_durable_deduplication_and_cursor(environment):
+    asset_id, factory, settings = environment
+    replay = replace(settings, group=settings.group + ".replay")
+    event = simulate_event(random.Random(17), "normal", asset_id, "M")
+    reader = FeedReader(factory)
+    high = reader.tail()
+    publish = Publisher(settings)
+    publish.publish(settings.topic, asset_id, event.model_dump_json().encode())
+    gate = Barrier(2)
+
+    class RacingModel:
+        def __init__(self):
+            self.model = load_frozen_model()
+
+        def predict_proba(self, frame):
+            gate.wait(timeout=15)
+            return self.model.predict_proba(frame)
+
+    workers = [
+        TelemetryWorker(
+            None,
+            publish,
+            TelemetryStore(factory, RacingModel()),
+            config,
+            Event(),
+            emit=quiet,
+        )
+        for config in (settings, replay)
+    ]
+
+    # Distinct groups deliberately deliver the same event to both workers.
+    # A normal shared group partitions ownership and can redeliver on recovery.
+    def consume(worker):
+        worker.consumer = create_consumer(worker.settings, quiet)
+        run_bounded(worker, 1)
+
+    with ThreadPoolExecutor(2) as pool:
+        pending = [pool.submit(consume, worker) for worker in workers]
+        for future in pending:
+            future.result(timeout=28)
+    assert [worker.counts["committed"] for worker in workers] == [1, 1]
+    assert sum(worker.counts["processed"] for worker in workers) == 1
+    assert sum(worker.counts["duplicates"] for worker in workers) == 1
+    _, _, committed = reader.read(FeedFilter(asset_id), high)
+    assert [item.event_id for item in committed] == [event.event_id]
 
 
 def test_database_disconnect_retries_without_skipping_the_offset(environment):

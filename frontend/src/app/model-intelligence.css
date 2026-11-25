@@ -228,3 +228,28 @@
   .model-topbar { padding-inline: 11px; }
   .app-shell .sidebar { flex-wrap: wrap; gap: 8px; }
 }
+.model-health { margin-top: 1rem; min-width: 0; }
+.model-health-header { display: flex; justify-content: space-between; gap: .7rem; align-items: flex-start; }
+.model-health-header p, .model-health > p { margin: .45rem 0 .8rem; color: #aec2d3; font-size: .85rem; line-height: 1.55; }
+.model-health-controls, .model-health-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: .8rem; margin: .9rem 0; }
+.model-health-controls label { display: grid; gap: .35rem; font-size: .82rem; color: #c5d6e3; }
+.model-health-controls select { width: 100%; min-height: 2.5rem; background: #132432; color: #e8f5ff; border: 1px solid #3a5060; border-radius: .5rem; padding: .45rem; }
+.model-health-summary > div { min-width: 0; border: 1px solid #273f50; background: #14222e; border-radius: .55rem; padding: .65rem; }
+.model-health-summary dt { font-size: .75rem; color: #a2b8cc; }
+.model-health-summary dd { display: flex; gap: .35rem; align-items: center; font-size: .9rem; margin: .35rem 0 0; }
+.model-health-summary dd svg { flex: none; color: #73e9ca; }
+.model-health-distribution h3 { margin: .75rem 0 .3rem; }
+.model-health-signal { margin: .35rem 0; color: #88ddcd; }
+.model-health-signal[data-indicator="elevated"], .model-health-signal[data-indicator="notice"] { color: #ffd38f; }
+.model-health-distribution table { width: 100%; table-layout: fixed; text-align: left; border-collapse: collapse; font-size: .78rem; }
+.model-health-distribution :is(th, td) { padding: .52rem .28rem; border-bottom: 1px solid #233a4b; overflow-wrap: anywhere; }
+.model-health-distribution th { color: #cad9e5; }
+.model-health-share { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: .45rem; color: #d2e6f6; }
+.model-health-share:only-child { min-width: 0; }
+.model-health-share .model-health-track { height: .4rem; border-radius: .3rem; background: #293e51; }
+.model-health-share i { display: block; height: 100%; border-radius: inherit; background: #6fb2e8; }
+.model-health-share.actual i { background: #67d9b6; }
+@media (max-width: 460px) {
+  .model-health-share { grid-template-columns: 1fr; gap: .25rem; }
+  .model-health-header { flex-wrap: wrap; }
+}

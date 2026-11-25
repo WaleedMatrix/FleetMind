@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, mapped_column
 
 from fleetmind.db.database import Base
+from fleetmind.observability import timed
 from fleetmind.services.predictions import assess, validate_asset
 from fleetmind.telemetry.contracts import RejectedCategory, TelemetryEvent
 
@@ -65,11 +66,15 @@ class TelemetryStore:
             raise EventRejected("event_id_conflict")
         return Outcome(row.prediction_id, duplicate=True)
 
+    @timed("telemetry_transaction")
     def persist(self, event: TelemetryEvent, ingested_at: datetime) -> Outcome:
-        digest = sha256(event.model_dump_json().encode()).hexdigest()
+        with timed("telemetry_serialization"):
+            digest = sha256(event.model_dump_json().encode()).hexdigest()
         started = perf_counter()
         try:
             with self.factory.begin() as db:
+                with timed("worker_pool_checkout"):
+                    db.connection()
                 existing = db.get(TelemetryAssessment, event.event_id)
                 if existing is not None:
                     return self._duplicate(existing, digest)

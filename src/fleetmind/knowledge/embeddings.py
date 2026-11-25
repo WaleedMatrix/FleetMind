@@ -11,6 +11,8 @@ from typing import Protocol
 
 import numpy as np
 
+from fleetmind.observability import timed
+
 DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_REVISION = "c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
 logger = logging.getLogger(__name__)
@@ -49,12 +51,18 @@ class EmbeddingSettings:
     revision: str | None
     directory: Path | None
     offline: bool
+    profile: str | None = None
 
     @classmethod
     def from_environment(cls):
         name = os.getenv("FLEETMIND_EMBEDDING_MODEL", DEFAULT_MODEL)
         directory = os.getenv("FLEETMIND_EMBEDDING_DIRECTORY")
         revision = os.getenv("FLEETMIND_EMBEDDING_REVISION")
+        profile = os.getenv("FLEETMIND_EMBEDDING_PROFILE")
+        if profile and not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,31}", profile):
+            raise EmbeddingUnavailable(
+                "Use a short lowercase embedding profile identifier."
+            )
         if not directory and name == DEFAULT_MODEL:
             revision = revision or DEFAULT_REVISION
         if len(name) > 160 or not re.fullmatch(r"[\w.-]+(?:/[\w.-]+)?", name):
@@ -70,6 +78,7 @@ class EmbeddingSettings:
             revision,
             Path(directory) if directory else None,
             os.getenv("FLEETMIND_EMBEDDING_OFFLINE", "1") != "0",
+            profile,
         )
 
 
@@ -122,6 +131,7 @@ class SentenceEmbedder:
                 except EmbeddingUnavailable:
                     logger.warning("Cached embedding prewarm unavailable")
 
+    @timed("embedding_load", log=True)
     def _initialize(self, *, force_offline: bool = False) -> None:
         self.initialization_state = "initializing"
         try:
@@ -155,7 +165,12 @@ class SentenceEmbedder:
                 trust_remote_code=False,
                 model_kwargs={"use_safetensors": True},
             )
-            dimensions = model.get_sentence_embedding_dimension()
+            dimension_reader = getattr(model, "get_embedding_dimension", None)
+            dimensions = (
+                dimension_reader()
+                if dimension_reader
+                else model.get_sentence_embedding_dimension()
+            )
             if dimensions is None or not 1 <= dimensions <= 2000:
                 raise EmbeddingUnavailable(
                     "Expected an embedding model with 1–2000 dimensions."
@@ -169,9 +184,15 @@ class SentenceEmbedder:
                 "The embedding model is unavailable. Install the optional dependencies "
                 "and cache the configured model revision or supply a local copy."
             ) from exc
+        indexed_revision = (
+            f"{revision}+{settings.profile}" if settings.profile else revision
+        )
+        if len(indexed_revision) > 128:
+            raise EmbeddingUnavailable("The configured embedding identity is too long.")
         self.model = model
-        self._identity = EmbeddingIdentity(settings.name, revision, dimensions)
+        self._identity = EmbeddingIdentity(settings.name, indexed_revision, dimensions)
 
+    @timed("embedding_encode")
     def encode(self, inputs: list[str]) -> list[list[float]]:
         if not inputs:
             return []

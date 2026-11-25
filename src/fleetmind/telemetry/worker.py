@@ -9,6 +9,16 @@ from time import monotonic, perf_counter
 from pydantic import ValidationError
 from sqlalchemy.exc import DBAPIError, OperationalError
 
+from fleetmind.observability import (
+    CORRELATION,
+    DURATION,
+    EVENTS,
+    LAG,
+    REJECTIONS,
+    WORKER,
+    correlation,
+    timed,
+)
 from fleetmind.services.predictions import AssetValidationError
 from fleetmind.telemetry.broker import BrokerFailure, BrokerSettings, Publisher, report
 from fleetmind.telemetry.contracts import MAX_EVENT_BYTES, DeadLetter, TelemetryEvent
@@ -119,6 +129,7 @@ class TelemetryWorker:
                 if self.stop.wait(min(2 ** (attempt - 1) / 4, 2)):
                     raise WorkerHalt("Shutdown interrupted database retry.")
                 self.counts["retry_attempts"] += 1
+                EVENTS.labels("retry_attempts").inc()
                 if attempt == 1:
                     self.counts["retried_events"] += 1
             try:
@@ -150,27 +161,41 @@ class TelemetryWorker:
             self.settings.dead_letter_topic, key, letter.model_dump_json().encode()
         )
         self.counts["dead_lettered"] += 1
+        EVENTS.labels("dead_lettered").inc()
         self.recent_letters.append(letter)
         self.emit("dead_lettered", **letter.model_dump(mode="json"))
 
     def process(self, message):
         """Handle one offset synchronously; exceptions stop the outer loop."""
+        with correlation(), timed("telemetry_delivery"):
+            self._process(message)
+
+    def _process(self, message):
         received_at = timestamp()
         started = perf_counter()
         self.counts["received"] += 1
+        EVENTS.labels("received").inc()
         event = None
         timings = {}
         try:
-            event = decode(message)
+            with timed("telemetry_decode"):
+                event = decode(message)
+            CORRELATION.set(event.event_id.hex)
             outcome = self._persist(event, received_at)
         except (EventRejected, AssetValidationError) as exc:
             self.counts["invalid"] += 1
+            EVENTS.labels("invalid").inc()
+            REJECTIONS.labels(exc.category).inc()
             self._dead_letter(message, exc.category, event)
             status = "invalid"
         else:
             status = "duplicates" if outcome.duplicate else "processed"
             self.counts[status] += 1
+            EVENTS.labels(status).inc()
             if not outcome.duplicate:
+                DURATION.labels("telemetry_database", "ok").observe(
+                    outcome.database_ms / 1000
+                )
                 timings = {
                     "inference_ms": outcome.inference_ms,
                     "database_ms": outcome.database_ms,
@@ -182,12 +207,16 @@ class TelemetryWorker:
         for name, value in timings.items():
             count, total = self.timing_totals[name]
             self.timing_totals[name] = (count + 1, total + value)
-        committed = self.consumer.commit(message=message, asynchronous=False)
-        if not committed or any(partition.error is not None for partition in committed):
-            raise WorkerHalt(
-                "Offset acknowledgement failed; restart from the committed position."
-            )
+        with timed("offset_acknowledgement"):
+            committed = self.consumer.commit(message=message, asynchronous=False)
+            if not committed or any(
+                partition.error is not None for partition in committed
+            ):
+                raise WorkerHalt(
+                    "Offset acknowledgement failed. Restart at the committed position."
+                )
         self.counts["committed"] += 1
+        EVENTS.labels("committed").inc()
         timings["processing_ms"] = (perf_counter() - started) * 1000
         for name, value in timings.items():
             self.samples[name].append(value)
@@ -213,12 +242,14 @@ class TelemetryWorker:
         }
 
     def _export(self, running):
+        lag = self.read_lag()
+        LAG.set(math.nan if lag is None or not running else lag)
         if self.submit_metrics is not None:
             self.submit_metrics(
                 DiagnosticSnapshot(
                     sampled_at=timestamp(),
                     running=running,
-                    lag=self.read_lag(),
+                    lag=lag,
                     counts=dict(self.counts),
                     timings=dict(self.timing_totals),
                     letters=tuple(self.recent_letters),
@@ -228,10 +259,12 @@ class TelemetryWorker:
     def run(self, max_events: int | None = None, report_interval: float = 5):
         next_report = monotonic() + report_interval
         next_export = monotonic() + METRICS_PERIOD
+        WORKER.set(1)
         self._export(True)
         try:
             while not self.stop.is_set():
-                message = self.consumer.poll(0.25)
+                with timed("kafka_poll"):
+                    message = self.consumer.poll(0.25)
                 if self.stop.is_set():
                     break
                 if message is not None:
@@ -251,6 +284,7 @@ class TelemetryWorker:
                 if max_events is not None and self.counts["committed"] >= max_events:
                     break
         finally:
+            WORKER.set(0)
             self._export(False)
             self.emit("worker_stopped", **self.snapshot())
             self.consumer.close()

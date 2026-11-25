@@ -16,7 +16,7 @@ function load(relative, symbols = {}) {
   });
   const exports = {};
   vm.runInNewContext(outputText, {
-    AbortSignal, Buffer, Headers, URL, exports, process: { env: { FLEETMIND_API_URL: "http://backend.invalid:8000" } },
+    AbortSignal, Buffer, Headers, URL, crypto, exports, process: { env: { FLEETMIND_API_URL: "http://backend.invalid:8000" } },
     require(id) {
       if (id === "next/server") return { NextResponse: BridgeResponse };
       if (id === "@/lib/server-upstream") return load("lib/server-upstream.ts");
@@ -93,9 +93,13 @@ test("telemetry preserves cursor and streams the backend response", async () => 
   const upstream = route(async (url, init) => {
     assert.equal(url.pathname, "/api/v1/telemetry/stream");
     assert.equal(init.headers.get("last-event-id"), "515");
+    assert.equal(init.headers.get("x-request-id"), "a".repeat(32));
     return new Response("event: ready\n\n", { headers: { "content-type": "text/event-stream" } });
   });
-  const result = await upstream.GET(...call("GET", ["telemetry", "stream"], { headers: { "Last-Event-ID": "515" } }));
+  const result = await upstream.GET(...call("GET", ["telemetry", "stream"], {
+    headers: { "Last-Event-ID": "515", "X-Request-ID": "a".repeat(32) },
+  }));
   assert.equal(await result.text(), "event: ready\n\n");
   assert.equal(result.headers.get("x-accel-buffering"), "no");
+  assert.equal(result.headers.get("x-request-id"), "a".repeat(32));
 });

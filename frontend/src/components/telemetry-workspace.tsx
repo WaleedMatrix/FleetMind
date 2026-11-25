@@ -3,7 +3,7 @@
 import { useEngineering } from "@/components/auth-shell";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { Activity, ArrowLeft, ArrowUpRight, Factory, Pause, Play, Radio, RefreshCw, ShieldAlert, Zap } from "lucide-react";
 import type { Asset } from "@/lib/assets";
 import {
@@ -30,6 +30,22 @@ const CATEGORIES = {
 
 type Selection = { record: AssessmentEvent["prediction"]; trigger: HTMLButtonElement; telemetry: AssessmentEvent };
 
+const AssessmentRow = memo(function AssessmentRow({ item, onSelect }: {
+  item: AssessmentEvent; onSelect: (selection: Selection) => void;
+}) {
+  const record = item.prediction;
+  return <tr data-event-id={item.event_id} data-cursor={item.cursor}>
+    <td><button type="button" className="telemetry-record" onClick={(event) => onSelect({
+      record, trigger: event.currentTarget, telemetry: item,
+    })}><span>{predictionLabel(record.prediction_id)} <ArrowUpRight size={13} aria-hidden="true" /></span>
+      <small>{record.asset_id || "Unassigned"}</small></button></td>
+    <td>{READING_SOURCES[record.source ?? "unknown"]}</td>
+    <td className="telemetry-score">{scoreText(record.failure_score)}</td>
+    <td><AlertBadge level={record.alert_level} /></td>
+    <td><time dateTime={item.assessed_at}>{timestampLabel(item.assessed_at)}</time></td>
+  </tr>;
+});
+
 function AssessmentFeed({ query, snapshot, paused, reconnect, onConnection, onReset, onSelect }: {
   query: string; snapshot: Snapshot; paused: boolean; reconnect: number;
   onConnection: (state: Connection, detail?: string) => void; onReset: () => void;
@@ -44,7 +60,7 @@ function AssessmentFeed({ query, snapshot, paused, reconnect, onConnection, onRe
       cursor: applied.current, query, onStatus: onConnection, onReset,
       onBatch(batch, cursor) {
         applied.current = cursor;
-        if (batch.length) setItems((current) => mergeAssessments(current, batch));
+        if (batch.length) startTransition(() => setItems((current) => mergeAssessments(current, batch)));
       },
     });
   }, [query, paused, reconnect, onConnection, onReset]);
@@ -54,19 +70,7 @@ function AssessmentFeed({ query, snapshot, paused, reconnect, onConnection, onRe
     <table className="telemetry-feed-table" aria-label="Committed telemetry assessments">
       <thead><tr><th scope="col">Assessment / asset</th><th scope="col">Source</th>
         <th scope="col">Score</th><th scope="col">Alert level</th><th scope="col">Assessed at</th></tr></thead>
-      <tbody>{items.map((item) => {
-        const record = item.prediction;
-        return <tr key={item.event_id} data-event-id={item.event_id} data-cursor={item.cursor}>
-          <td><button type="button" className="telemetry-record" onClick={(event) => onSelect({
-            record, trigger: event.currentTarget, telemetry: item,
-          })}><span>{predictionLabel(record.prediction_id)} <ArrowUpRight size={13} aria-hidden="true" /></span>
-            <small>{record.asset_id || "Unassigned"}</small></button></td>
-          <td>{READING_SOURCES[record.source ?? "unknown"]}</td>
-          <td className="telemetry-score">{scoreText(record.failure_score)}</td>
-          <td><AlertBadge level={record.alert_level} /></td>
-          <td><time dateTime={item.assessed_at}>{timestampLabel(item.assessed_at)}</time></td>
-        </tr>;
-      })}</tbody>
+      <tbody>{items.map((item) => <AssessmentRow key={item.event_id} item={item} onSelect={onSelect} />)}</tbody>
     </table>
   </div>;
 }

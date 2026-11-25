@@ -7,8 +7,11 @@ import re
 import signal
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from threading import Event
 from time import monotonic
+
+from fleetmind.observability import CORRELATION
 
 INPUT_TOPIC = "fleetmind.telemetry.v1"
 DEAD_LETTER_TOPIC = "fleetmind.telemetry.dlq.v1"
@@ -30,7 +33,14 @@ def kafka():
 
 
 def report(kind, **fields):
-    print(json.dumps({"kind": kind, **fields}, separators=(",", ":")), flush=True)
+    report = {
+        "kind": kind,
+        "operation": kind,
+        "timestamp": datetime.now(UTC).isoformat(),
+        "correlation_id": CORRELATION.get(),
+        **fields,
+    }
+    print(json.dumps(report, separators=(",", ":")), flush=True)
 
 
 @dataclass(frozen=True)

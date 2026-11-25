@@ -20,6 +20,11 @@ from fleetmind.knowledge.schemas import SearchFilters, SearchRequest
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "docs" / "knowledge"
 MODES = ("semantic", "keyword", "hybrid")
+SUITES = {
+    "regression": "retrieval-evaluation.json",
+    "development": "retrieval-development-m11b.json",
+    "test": "retrieval-test-m11b.json",
+}
 
 
 def score(ranked: list[str], expected: set[str], k: int) -> dict:
@@ -46,8 +51,8 @@ def percentiles(values: list[float]) -> dict:
     }
 
 
-def evaluate(top_k: int) -> dict:
-    raw_queries = (CORPUS / "retrieval-evaluation.json").read_bytes()
+def evaluate(top_k: int, suite: str = "regression") -> dict:
+    raw_queries = (CORPUS / SUITES[suite]).read_bytes()
     cases = json.loads(raw_queries)
     manifest = json.loads((CORPUS / "manifest.json").read_text(encoding="utf-8"))
     scope = SearchFilters(document_ids=[doc["id"] for doc in manifest])
@@ -60,6 +65,7 @@ def evaluate(top_k: int) -> dict:
     embedder.encode(["FleetMind maintenance knowledge"])
     warmup_ms = (perf_counter() - start) * 1000
     report = {
+        "suite": suite,
         "evaluation_sha256": hashlib.sha256(raw_queries).hexdigest(),
         "queries": len(cases),
         "answerable": sum(bool(case["relevant"]) for case in cases),
@@ -155,9 +161,13 @@ def evaluate_mode(db, embedder, cases, scope, mode, top_k):
 def main():
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("--top-k", type=int, default=5, choices=range(1, 21))
+    cli.add_argument("--suite", choices=SUITES, default="regression")
     cli.add_argument("--output", type=Path, help="New report path. Defaults to stdout.")
     args = cli.parse_args()
-    report = json.dumps(evaluate(args.top_k), ensure_ascii=False, indent=2) + "\n"
+    report = (
+        json.dumps(evaluate(args.top_k, args.suite), ensure_ascii=False, indent=2)
+        + "\n"
+    )
     if args.output:
         with args.output.open("x", encoding="utf-8") as stream:
             stream.write(report)

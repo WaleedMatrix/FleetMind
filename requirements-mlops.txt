@@ -1,0 +1,3 @@
+# Optional local experiment tracking and OTLP export.
+mlflow-skinny==3.18.0
+opentelemetry-exporter-otlp-proto-http==1.45.2

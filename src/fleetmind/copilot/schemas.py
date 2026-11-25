@@ -35,8 +35,8 @@ class ToolCall(StrictInput):
 
 
 class Tokens(StrictInput):
-    input: int = Field(ge=0)
-    output: int = Field(ge=0)
+    input: int = Field(ge=0, le=10_000_000)
+    output: int = Field(ge=0, le=10_000_000)
 
 
 class Citation(BaseModel):

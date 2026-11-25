@@ -15,6 +15,7 @@ const METHODS = new Map([
   ["predict", ["POST"]],
   ["assets", ["GET", "POST"]],
   ["model/intelligence", ["GET"]],
+  ["model/health", ["GET"]],
   ["copilot/status", ["GET"]],
   ["knowledge/status", ["GET"]],
   ["copilot/conversations", ["GET", "POST"]],
@@ -114,6 +115,10 @@ async function forward(request: NextRequest, context: RouteContext) {
     const body = reads ? undefined : await boundedBody(request, signal);
     if (body === null) return NextResponse.json({ detail: "Request body is too large." }, { status: 413 });
     const headers = new Headers();
+    const requestId = request.headers.get("x-request-id");
+    const forwardedId = requestId && /^[0-9a-f]{32}$/.test(requestId)
+      ? requestId : crypto.randomUUID().replaceAll("-", "");
+    headers.set("X-Request-ID", forwardedId);
     if (body?.byteLength) headers.set("Content-Type", "application/json");
     const cookies = sessionCookies(request.headers.get("cookie"));
     if (cookies) headers.set("Cookie", cookies);
@@ -136,13 +141,17 @@ async function forward(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ detail: "Unexpected API redirect." }, { status: 502 });
     }
     const contentType = response.headers.get("content-type") || "application/json";
+    const correlation = response.headers.get("x-request-id");
+    const responseId = correlation && /^[0-9a-f]{32}$/.test(correlation) ? correlation : forwardedId;
     if (streaming && response.ok && contentType.startsWith("text/event-stream")) {
       return new NextResponse(response.body, {
-        headers: { "Content-Type": contentType, "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
+        headers: { "Content-Type": contentType, "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no",
+          "X-Request-ID": responseId },
       });
     }
     const result = response.status === 204 ? null : await response.text();
     const outgoing = new Headers({ "Content-Type": contentType, "Cache-Control": "no-store" });
+    outgoing.set("X-Request-ID", responseId);
     const retry = response.headers.get("retry-after");
     if (retry) outgoing.set("Retry-After", retry);
     if (["auth/login", "auth/logout", "auth/password"].includes(subpath) || sessionDetail.test(subpath)) {

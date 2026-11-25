@@ -49,6 +49,13 @@ class PredictionHistory(Base):
         ),
         Index("ix_prediction_history_asset_id_id", "asset_id", "id"),
         Index(
+            "ix_prediction_history_model_source_created",
+            "model_version",
+            "source",
+            "created_at",
+            "id",
+        ),
+        Index(
             "ix_prediction_history_asset_alert_id",
             "asset_id",
             "alert_level",

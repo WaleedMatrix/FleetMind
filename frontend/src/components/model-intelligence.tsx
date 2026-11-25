@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Activity, ArrowLeft, BrainCircuit, FlaskConical, Radio } from "lucide-react";
 import { marginText, type ModelIntelligence as Intelligence } from "@/lib/model-intelligence";
 import { useFleetMindQuery } from "@/lib/use-fleetmind-query";
+import { ModelHealth } from "./model-health";
 
 const percentage = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
 
@@ -134,6 +135,7 @@ export function ModelIntelligence() {
             </section>
           </div>
         )}
+        <ModelHealth />
       </main>
     </>
   );

@@ -18,6 +18,7 @@ from fleetmind.knowledge.schemas import (
     SearchResponse,
     SourceCitation,
 )
+from fleetmind.observability import timed
 
 RRF_CONSTANT = 60
 
@@ -44,6 +45,7 @@ def reciprocal_rank_fusion(
     return sorted(scores.items(), key=lambda item: (-item[1], item[0]))
 
 
+@timed("retrieval", log=True)
 def search(
     db: Session,
     request: SearchRequest,

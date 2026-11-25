@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from fleetmind.copilot.relevance import terms
 from fleetmind.copilot.schemas import Tokens, ToolCall
 from fleetmind.copilot.settings import Settings
+from fleetmind.observability import PROVIDER_FAILURE, timed
 
 
 class ProviderError(RuntimeError):
@@ -129,23 +130,29 @@ class ChatCompletionsProvider:
         ) as client:
             for attempt in range(config.retries + 1):
                 try:
-                    async with asyncio.timeout(config.provider_timeout):
-                        async with client.stream(
-                            "POST",
-                            f"{config.base_url}/chat/completions",
-                            json=payload,
-                            headers=headers,
-                        ) as response:
-                            response.raise_for_status()
-                            body = bytearray()
-                            async for chunk in response.aiter_bytes():
-                                body.extend(chunk)
-                                if len(body) > 256_000:
-                                    raise ProviderError("provider_response_too_large")
-                    return parse_completion(body)
+                    with timed("provider_attempt"):
+                        async with asyncio.timeout(config.provider_timeout):
+                            async with client.stream(
+                                "POST",
+                                f"{config.base_url}/chat/completions",
+                                json=payload,
+                                headers=headers,
+                            ) as response:
+                                response.raise_for_status()
+                                body = bytearray()
+                                async for chunk in response.aiter_bytes():
+                                    body.extend(chunk)
+                                    if len(body) > 256_000:
+                                        raise ProviderError(
+                                            "provider_response_too_large"
+                                        )
+                        return parse_completion(body)
                 except httpx.HTTPStatusError as exc:
                     status = exc.response.status_code
                     if 400 <= status < 500 and status != 429:
+                        PROVIDER_FAILURE.labels(
+                            config.provider, "provider_rejected_request"
+                        ).inc()
                         raise ProviderError("provider_rejected_request") from None
                     failure = (
                         "provider_rate_limited"
@@ -156,6 +163,19 @@ class ChatCompletionsProvider:
                     failure = "provider_timeout"
                 except httpx.RequestError:
                     failure = "provider_unreachable"
+                except ProviderError as exc:
+                    category = (
+                        str(exc)
+                        if str(exc)
+                        in {
+                            "provider_response_too_large",
+                            "malformed_provider_response",
+                        }
+                        else "provider_protocol_error"
+                    )
+                    PROVIDER_FAILURE.labels(config.provider, category).inc()
+                    raise
+                PROVIDER_FAILURE.labels(config.provider, failure).inc()
                 if attempt < config.retries:
                     await asyncio.sleep(0.15 * 2**attempt)
         raise ProviderError(failure)

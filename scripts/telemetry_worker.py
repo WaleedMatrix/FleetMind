@@ -8,6 +8,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from fleetmind.db.database import DATABASE_URL
+from fleetmind.observability import (
+    configure_logging,
+    configure_tracing,
+    stop_tracing,
+    worker_scrape,
+)
 from fleetmind.services.predictions import load_frozen_model
 from fleetmind.telemetry.broker import (
     BrokerFailure,
@@ -49,12 +55,17 @@ def main() -> int:
     parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--max-events", type=int)
     parser.add_argument("--trace", action="store_true")
+    parser.add_argument(
+        "--metrics-port", type=int, help="Optional loopback Prometheus port"
+    )
     parser.add_argument("--report-interval", type=float, default=5)
     args = parser.parse_args()
     if not 1 <= args.partitions <= 32 or not 0 <= args.retries <= 5:
         parser.error("Use 1–32 partitions and 0–5 database retries.")
     if args.max_events is not None and args.max_events < 1:
         parser.error("--max-events must be positive.")
+    if args.metrics_port is not None and not 1024 <= args.metrics_port <= 65535:
+        parser.error("--metrics-port must be between 1024 and 65535.")
     if not 0.2 <= args.report_interval <= 300:
         parser.error("--report-interval must be 0.2–300 seconds.")
     try:
@@ -74,6 +85,8 @@ def main() -> int:
     stop = Event()
     install_stop_handlers(stop)
     engine = worker_engine()
+    configure_logging()
+    tracing = configure_tracing("fleetmind-worker")
     metrics_engine = None
     reporter = None
     try:
@@ -96,7 +109,15 @@ def main() -> int:
             read_lag=lag.read,
             submit_metrics=reporter.submit,
         )
-        worker.run(args.max_events, args.report_interval)
+        with worker_scrape(args.metrics_port):
+            worker.run(args.max_events, args.report_interval)
+    except (OSError, ValueError) as exc:
+        report(
+            "worker_failed",
+            reason="runtime_configuration",
+            error_type=type(exc).__name__,
+        )
+        return 1
     except SQLAlchemyError as exc:
         report(
             "worker_failed",
@@ -118,6 +139,7 @@ def main() -> int:
         if metrics_engine is not None:
             metrics_engine.dispose()
         engine.dispose()
+        stop_tracing(tracing)
     return 0
 
 

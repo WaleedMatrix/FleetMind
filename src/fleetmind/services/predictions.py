@@ -11,6 +11,7 @@ from fleetmind.api.inference import classify_alert, to_model_frame
 from fleetmind.api.schemas import MachineReading, ReadingSource
 from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
 from fleetmind.db.models import Asset, PredictionHistory
+from fleetmind.observability import timed
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MODEL_PATH = PROJECT_ROOT / "artifacts" / "models" / f"{MODEL_VERSION}.joblib"
@@ -46,7 +47,10 @@ def assess(
     source: ReadingSource,
 ) -> PredictionHistory:
     """Stage the frozen-model assessment in the caller's transaction."""
-    score = float(model.predict_proba(to_model_frame(reading))[0, 1])
+    with timed("feature_preparation"):
+        frame = to_model_frame(reading)
+    with timed("model_inference"):
+        score = float(model.predict_proba(frame)[0, 1])
     record = PredictionHistory(
         **reading.model_dump(include=set(MachineReading.model_fields)),
         asset_id=asset_id,

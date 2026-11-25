@@ -1,7 +1,7 @@
 "use client";
 
 import { Activity, Clock3, Database, Gauge, RadioTower, Server, Workflow } from "lucide-react";
-import type { ReactNode } from "react";
+import { memo, useDeferredValue, type ReactNode } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { timestampLabel } from "@/lib/predictions";
 import type { Availability, MetricPoint, Metrics, StorageState } from "@/lib/telemetry";
@@ -43,12 +43,13 @@ const LATENCY: Series[] = [
   { key: "observation_to_commit_ms", name: "Observation to commit", color: "#b8a8ff" },
 ];
 
-function Trend({ title, unit, icon, data, series }: {
-  title: string; unit: string; icon: ReactNode; data: MetricPoint[]; series: Series[];
+const NO_POINTS: MetricPoint[] = [];
+const Trend = memo(function Trend({ title, unit, Icon, data, series }: {
+  title: string; unit: string; Icon: typeof Activity; data: MetricPoint[]; series: Series[];
 }) {
   const hasData = data.some((point) => series.some(({ key }) => point[key] !== null));
   return <section className="panel telemetry-trend" aria-label={title}>
-    <div className="telemetry-panel-heading"><div>{icon}<h2>{title}</h2></div><small>{unit}</small></div>
+    <div className="telemetry-panel-heading"><div><Icon size={17} /><h2>{title}</h2></div><small>{unit}</small></div>
     {hasData ? <div className="telemetry-chart">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ left: 0, right: 10, top: 12, bottom: 0 }} accessibilityLayer>
@@ -59,12 +60,12 @@ function Trend({ title, unit, icon, data, series }: {
           <Tooltip labelFormatter={(v) => TIME.format(new Date(String(v)))} contentStyle={{ background: "#142333", border: "1px solid #345066", borderRadius: 8 }} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           {series.map(({ key, name, color }) => <Line key={key} dataKey={key} name={name} stroke={color}
-            strokeWidth={2.4} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />)}
+            strokeWidth={2.4} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />)}
         </LineChart>
       </ResponsiveContainer>
     </div> : <p className="telemetry-chart-empty">No samples for this window.</p>}
   </section>;
-}
+});
 
 function KPI({ title, value, caption, icon }: { title: string; value: string; caption: string; icon: ReactNode }) {
   return <div className="panel telemetry-kpi">
@@ -80,8 +81,9 @@ function Health({ icon, title, state, time }: { icon: ReactNode; title: string; 
 }
 
 export function TelemetryMetrics({ revision }: { revision: number }) {
-  const { data, error, pending } = useFleetMindQuery<Metrics>("telemetry/metrics", { pollMs: 5_000, revision });
+  const { data, error, pending } = useFleetMindQuery<Metrics>("telemetry/metrics", { pollMs: 10_000, revision });
   const usable = data?.state === "ready" ? data : null;
+  const points = useDeferredValue(usable?.points ?? NO_POINTS);
   const stale = Boolean(error && usable);
   const latestMean = usable?.points.filter((point) => point.inference_ms !== null).at(-1)?.inference_ms;
   const totals = usable?.reported_totals;
@@ -112,9 +114,9 @@ export function TelemetryMetrics({ revision }: { revision: number }) {
     </div>
     <div className="telemetry-section-heading"><h2>Processing activity</h2><span>Last 5 minutes · 10-second buckets · UTC</span></div>
     <div className="telemetry-charts">
-      <Trend title="Event throughput" unit="Events / s" icon={<Activity size={17} />} data={usable?.points ?? []} series={THROUGHPUT} />
-      <Trend title="Consumer backlog" unit="Offsets" icon={<Gauge size={17} />} data={usable?.points ?? []} series={BACKLOG} />
-      <Trend title="Processing latency" unit="Mean ms" icon={<Clock3 size={17} />} data={usable?.points ?? []} series={LATENCY} />
+      <Trend title="Event throughput" unit="Events / s" Icon={Activity} data={points} series={THROUGHPUT} />
+      <Trend title="Consumer backlog" unit="Offsets" Icon={Gauge} data={points} series={BACKLOG} />
+      <Trend title="Processing latency" unit="Mean ms" Icon={Clock3} data={points} series={LATENCY} />
     </div>
     <details className="panel telemetry-counts">
       <summary>Reported delivery totals</summary>

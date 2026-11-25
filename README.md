@@ -51,7 +51,7 @@ review audit events.
 1. Install the current `requirements.txt` and confirm `DATABASE_URL` points
    to the intended instance. Back up an existing database before proceeding.
 2. Run `python -m alembic upgrade head`, then confirm
-   `python -m alembic current` reports `0007_application_security`.
+   `python -m alembic current` reports `0008_model_health_lookup`.
 3. Run `python -m scripts.manage_security bootstrap --username your-admin`.
    The CLI prompts for a password and confirmation without echoing either.
 4. For local development, set `FLEETMIND_AUTH_INSECURE_LOCAL_HTTP=1` and exact
@@ -67,6 +67,14 @@ conversations from **Administration → Legacy conversations**.
 
 See [FleetMind security architecture](docs/security.md) for the permission
 matrix, simulator credentials, deployment settings, and audit findings.
+
+## MLOps and Model Health
+
+Open **Model Intelligence → Model health** to compare source-scoped recent
+assessments with the verified frozen model's training distribution.
+Prometheus, Grafana, MLflow, and OTLP export are optional. See the [MLOps guide](docs/mlops.md)
+for activation, private scrape configuration, dependency remediation, and
+the measured retrieval, worker, and browser results.
 
 ## Asset Intelligence
 

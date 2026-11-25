@@ -88,8 +88,8 @@ authorization authority.
 
 Back up and confirm the intended target in `DATABASE_URL`. Install
 `requirements.txt` and run `python -m alembic upgrade head` from the repository
-root. Verify `python -m alembic current` reports `0007_application_security`.
-The migration adds four tables and a nullable owner column and index. It leaves
+root. Milestone 11A's security revision is `0007_application_security`. Later
+heads include this revision. It adds four tables and a nullable owner column and index. It leaves
 existing asset, prediction, knowledge, telemetry, and conversation data in place.
 The forward-only migration was tested with legacy rows on disposable PostgreSQL.
 
@@ -186,10 +186,8 @@ No finding was reported for the newly declared argon2-cffi 25.1.0.
 | transformers | 4.57.6 | Multiple advisories, including PYSEC-2026-2289, PYSEC-2026-3929, and PYSEC-2026-4174. |
 | setuptools | 65.5.0 | Multiple advisories, including PYSEC-2025-49 and GHSA-xmj3-9gf7-h52w. |
 
-The findings remain open in this environment. Validate dependency upgrades
-against the frozen model and existing embedding index prior to production
-deployment. Advisory review covers published package findings and is scoped
-to the audited environment and lockfile.
+See the [Milestone 11B dependency review](mlops.md#dependency-remediation)
+for the tested upgrades and subsequent advisory results.
 
 ## Validation
 

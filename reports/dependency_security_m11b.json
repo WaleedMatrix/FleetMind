@@ -1,0 +1,272 @@
+{
+  "baseline_entries": 19,
+  "unique_advisories": 12,
+  "baseline": [
+    {
+      "package": "sentence-transformers",
+      "audited_version": "5.2.0",
+      "advisory": "PYSEC-2026-4164",
+      "aliases": [
+        "CVE-2026-68770",
+        "GHSA-jhr6-gm9c-rqjv"
+      ],
+      "severity": "critical",
+      "fixed_versions": [
+        "5.6.0"
+      ],
+      "advisory_entries": 1,
+      "source": "https://github.com/advisories/GHSA-jhr6-gm9c-rqjv"
+    },
+    {
+      "package": "setuptools",
+      "audited_version": "65.5.0",
+      "advisory": "PYSEC-2022-43012",
+      "aliases": [
+        "BIT-setuptools-2022-40897",
+        "CVE-2022-40897",
+        "GHSA-r9hx-vwmv-q579"
+      ],
+      "severity": "high",
+      "fixed_versions": [
+        "65.5.1"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-r9hx-vwmv-q579"
+    },
+    {
+      "package": "setuptools",
+      "audited_version": "65.5.0",
+      "advisory": "PYSEC-2025-49",
+      "aliases": [
+        "BIT-setuptools-2025-47273",
+        "CVE-2025-47273",
+        "GHSA-5rjg-fvgr-3xxf"
+      ],
+      "severity": "high",
+      "fixed_versions": [
+        "78.1.1"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-5rjg-fvgr-3xxf"
+    },
+    {
+      "package": "setuptools",
+      "audited_version": "65.5.0",
+      "advisory": "PYSEC-2026-1918",
+      "aliases": [
+        "BIT-setuptools-2024-6345",
+        "CVE-2024-6345",
+        "GHSA-cx63-2mw6-8hw5"
+      ],
+      "severity": "high",
+      "fixed_versions": [
+        "70.0.0"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-cx63-2mw6-8hw5"
+    },
+    {
+      "package": "setuptools",
+      "audited_version": "65.5.0",
+      "advisory": "PYSEC-2026-3447",
+      "aliases": [
+        "BIT-setuptools-2026-59890",
+        "CVE-2026-59890",
+        "GHSA-h35f-9h28-mq5c"
+      ],
+      "severity": "medium",
+      "fixed_versions": [
+        "83.0.0"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-h35f-9h28-mq5c"
+    },
+    {
+      "package": "setuptools",
+      "audited_version": "65.5.0",
+      "advisory": "GHSA-xmj3-9gf7-h52w",
+      "aliases": [],
+      "severity": "low",
+      "fixed_versions": [
+        "84.1.0"
+      ],
+      "advisory_entries": 1,
+      "source": "https://github.com/advisories/GHSA-xmj3-9gf7-h52w"
+    },
+    {
+      "package": "transformers",
+      "audited_version": "4.57.6",
+      "advisory": "PYSEC-2025-217",
+      "aliases": [
+        "CVE-2025-14929"
+      ],
+      "severity": "high",
+      "fixed_versions": [],
+      "advisory_entries": 1,
+      "source": "https://github.com/advisories/GHSA-8jfx-5878-hv4v"
+    },
+    {
+      "package": "transformers",
+      "audited_version": "4.57.6",
+      "advisory": "PYSEC-2026-2288",
+      "aliases": [
+        "CVE-2026-1839",
+        "GHSA-69w3-r845-3855"
+      ],
+      "severity": "medium",
+      "fixed_versions": [
+        "5.0.0",
+        "5.0.0rc3"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-69w3-r845-3855"
+    },
+    {
+      "package": "transformers",
+      "audited_version": "4.57.6",
+      "advisory": "PYSEC-2026-2289",
+      "aliases": [
+        "CVE-2026-4372",
+        "GHSA-29pf-2h5f-8g72"
+      ],
+      "severity": "high",
+      "fixed_versions": [
+        "5.3.0"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-29pf-2h5f-8g72"
+    },
+    {
+      "package": "transformers",
+      "audited_version": "4.57.6",
+      "advisory": "PYSEC-2026-2290",
+      "aliases": [
+        "CVE-2026-5241",
+        "GHSA-fgcw-684q-jj6r"
+      ],
+      "severity": "high",
+      "fixed_versions": [
+        "5.5.0"
+      ],
+      "advisory_entries": 2,
+      "source": "https://github.com/advisories/GHSA-fgcw-684q-jj6r"
+    },
+    {
+      "package": "transformers",
+      "audited_version": "4.57.6",
+      "advisory": "PYSEC-2026-3929",
+      "aliases": [
+        "CVE-2026-9856",
+        "GHSA-xrqw-3rrv-vx5w"
+      ],
+      "severity": "high",
+      "fixed_versions": [
+        "5.10.0"
+      ],
+      "advisory_entries": 1,
+      "source": "https://github.com/advisories/GHSA-xrqw-3rrv-vx5w"
+    },
+    {
+      "package": "transformers",
+      "audited_version": "4.57.6",
+      "advisory": "PYSEC-2026-4174",
+      "aliases": [
+        "CVE-2026-80047",
+        "GHSA-x9r9-c232-4q39"
+      ],
+      "severity": "high",
+      "fixed_versions": [],
+      "advisory_entries": 1,
+      "source": "https://github.com/advisories/GHSA-x9r9-c232-4q39"
+    }
+  ],
+  "candidate": {
+    "installed": {
+      "sentence-transformers": "5.6.0",
+      "setuptools": "84.1.0",
+      "transformers": "5.17.0"
+    },
+    "pip_audit_advisory_entries": 0,
+    "skipped": [
+      {
+        "name": "fleetmind",
+        "skip_reason": "distribution marked as editable"
+      },
+      {
+        "name": "torch",
+        "skip_reason": "Dependency not found on PyPI and could not be audited: torch (2.9.1+cpu)"
+      }
+    ],
+    "npm_audit_entries": 0
+  },
+  "optional_dependencies_environment": {
+    "entries": 0,
+    "advisories": []
+  },
+  "pytorch_base_release_screen": {
+    "entries": 5,
+    "advisories": [
+      {
+        "id": "PYSEC-2026-139",
+        "aliases": [
+          "CVE-2026-4538",
+          "BIT-pytorch-2026-4538"
+        ],
+        "fix_versions": []
+      },
+      {
+        "id": "PYSEC-2025-194",
+        "aliases": [
+          "BIT-pytorch-2025-3000",
+          "GHSA-rrmf-rvhw-rf47",
+          "CVE-2025-3000"
+        ],
+        "fix_versions": [
+          "2.13.0"
+        ]
+      },
+      {
+        "id": "PYSEC-2025-195",
+        "aliases": [
+          "CVE-2025-3001",
+          "GHSA-qfhq-4f3w-5fph",
+          "BIT-pytorch-2025-3001"
+        ],
+        "fix_versions": [
+          "2.10.0"
+        ]
+      },
+      {
+        "id": "PYSEC-2026-2286",
+        "aliases": [
+          "BIT-pytorch-2026-24747",
+          "GHSA-63cw-57p8-fm3p",
+          "CVE-2026-24747"
+        ],
+        "fix_versions": [
+          "2.10.0"
+        ]
+      },
+      {
+        "id": "PYSEC-2026-1856",
+        "aliases": [
+          "GHSA-63cw-57p8-fm3p",
+          "PYSEC-2026-2286",
+          "CVE-2026-24747",
+          "BIT-pytorch-2026-24747"
+        ],
+        "fix_versions": [
+          "2.10.0"
+        ]
+      }
+    ],
+    "audited_base_version": "2.9.1",
+    "installed_wheel_version": "2.9.1+cpu",
+    "unique_cves": [
+      "CVE-2025-3000",
+      "CVE-2025-3001",
+      "CVE-2026-24747",
+      "CVE-2026-4538"
+    ]
+  }
+}

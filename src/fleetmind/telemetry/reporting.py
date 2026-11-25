@@ -10,6 +10,7 @@ from sqlalchemy import delete, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
+from fleetmind.observability import DEPENDENCY
 from fleetmind.telemetry.broker import kafka, report
 from fleetmind.telemetry.contracts import DeadLetter
 from fleetmind.telemetry.live_models import (
@@ -158,7 +159,11 @@ class WorkerReporter:
                 )
             except self.kafka_error:
                 broker_ok = False
+            DEPENDENCY.labels("redpanda").set(int(broker_ok))
             try:
                 save_snapshot(self.factory, self.worker_id, snapshot, broker_ok)
             except SQLAlchemyError:
+                DEPENDENCY.labels("postgresql").set(0)
                 report("metrics_storage_unavailable")
+            else:
+                DEPENDENCY.labels("postgresql").set(1)

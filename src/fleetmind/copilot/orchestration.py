@@ -14,6 +14,14 @@ from fleetmind.copilot.providers import ProviderError
 from fleetmind.copilot.schemas import Diagnostics, Tokens
 from fleetmind.copilot.tools import REGISTRY, AssetInput, ToolFailure, tool_definitions
 from fleetmind.copilot.validation import response, validate_final
+from fleetmind.observability import (
+    COPILOT,
+    DURATION,
+    PROVIDER_FAILURE,
+    TOKENS,
+    event,
+    span,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,21 +41,31 @@ class Orchestrator:
         started = perf_counter()
         diagnostics = Diagnostics()
         try:
-            async with asyncio.timeout(self.settings.request_timeout):
-                result = await self._collect(request, context, diagnostics)
+            with span("copilot_request"):
+                async with asyncio.timeout(self.settings.request_timeout):
+                    result = await self._collect(request, context, diagnostics)
         except TimeoutError:
+            PROVIDER_FAILURE.labels(self.settings.provider, "request_deadline").inc()
             diagnostics.issues.append("request_deadline")
             result = response("unavailable", diagnostics)
         except ProviderError as exc:
             diagnostics.issues.append(str(exc))
             result = response("unavailable", diagnostics)
-        result.diagnostics.elapsed_ms = round((perf_counter() - started) * 1000, 3)
+        elapsed = perf_counter() - started
+        result.diagnostics.elapsed_ms = round(elapsed * 1000, 3)
+        COPILOT.labels(self.settings.provider, result.status).inc()
+        DURATION.labels("copilot_request", result.status).observe(elapsed)
+        event("copilot_request", outcome=result.status, duration=elapsed)
         return result
 
     async def _complete(self, messages, tools, diagnostics):
         diagnostics.provider_calls += 1
         result = await self.provider.complete(messages, tools)
         if result.tokens is not None:
+            for direction in ("input", "output"):
+                TOKENS.labels(self.settings.provider, direction).inc(
+                    getattr(result.tokens, direction)
+                )
             old = diagnostics.tokens or Tokens(input=0, output=0)
             diagnostics.tokens = Tokens(
                 input=old.input + result.tokens.input,

@@ -13,6 +13,7 @@ seaborn>=0.12.0
 # Development & Notebooks
 jupyterlab>=4.0.0
 ipykernel>=6.20.0
+setuptools==84.1.0
 
 # API & Web Framework
 fastapi>=0.100.0
@@ -20,6 +21,8 @@ uvicorn[standard]>=0.22.0
 pydantic>=2.0.0
 python-dotenv>=1.0.0
 argon2-cffi==25.1.0
+prometheus-client==0.26.0
+psutil==7.2.2
 
 # Testing & Linting
 pytest>=7.3.0

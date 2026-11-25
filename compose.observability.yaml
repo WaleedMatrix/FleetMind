@@ -1,0 +1,65 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    profiles: [observability]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.size=512MB
+    mem_limit: 512m
+    cpus: 0.75
+    volumes:
+      - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${FLEETMIND_OBSERVABILITY_DIR:-./.env.observability}/targets:/etc/prometheus/targets:ro
+      - fleetmind_prometheus:/prometheus
+    secrets:
+      - fleetmind_scrape_token
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:9090/-/healthy']
+      interval: 10s
+      timeout: 4s
+      retries: 8
+  grafana:
+    image: grafana/grafana:13.2.1
+    profiles: [observability]
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        pw="$$(tr -d '\r\n' < /run/secrets/fleetmind_grafana_password)"
+        test "$${#pw}" -ge 32
+        export GF_SECURITY_ADMIN_PASSWORD="$$pw"
+        unset pw
+        exec /run.sh
+    environment:
+      GF_SECURITY_ADMIN_USER: fleetmind-observer
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    mem_limit: 512m
+    cpus: 0.75
+    ports:
+      - '127.0.0.1:${FLEETMIND_GRAFANA_PORT:-3100}:3000'
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/fleetmind-dashboards:ro
+      - fleetmind_grafana:/var/lib/grafana
+    secrets:
+      - fleetmind_grafana_password
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:3000/api/health']
+      interval: 10s
+      timeout: 4s
+      retries: 8
+
+secrets:
+  fleetmind_scrape_token:
+    file: ${FLEETMIND_OBSERVABILITY_DIR:-./.env.observability}/scrape.token
+  fleetmind_grafana_password:
+    file: ${FLEETMIND_OBSERVABILITY_DIR:-./.env.observability}/grafana.password
+
+volumes:
+  fleetmind_prometheus:
+  fleetmind_grafana:

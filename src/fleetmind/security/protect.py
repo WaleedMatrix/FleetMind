@@ -68,6 +68,8 @@ def permissions(method, path):
         return Policy("engineer", "prediction", 60, size=8192)
     if path.endswith("/explanation"):
         return Policy(bucket="explanation", per_minute=30)
+    if path == "/api/v1/model/health":
+        return Policy(bucket="model_health", per_minute=20)
     return Policy("engineer" if method not in SAFE_METHODS else "viewer")
 
 
@@ -184,7 +186,8 @@ class SecurityMiddleware:
             return
         request = Request(scope)
         method, path = request.method, scope["path"]
-        if path == "/health" and method == "GET":
+        if path in {"/health", "/metrics"} and method == "GET":
+            # /metrics independently requires the dedicated scrape credential.
             await self.app(scope, receive, self.response_headers(send, secure=False))
             return
         try:
