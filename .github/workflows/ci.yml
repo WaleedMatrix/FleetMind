@@ -23,7 +23,7 @@ jobs:
       OMP_NUM_THREADS: "2"
       FLEETMIND_COPILOT_PREWARM: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -33,7 +33,7 @@ jobs:
       - run: python -m scripts.verify_frozen_artifacts
       - run: ruff check .
       - run: python -m alembic upgrade head && python -m alembic check
-      - run: pytest
+      - run: python -m pytest
       - run: python -m scripts.evaluate_copilot --output "$RUNNER_TEMP/copilot.json"
 
   frontend:
@@ -42,7 +42,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -58,6 +58,6 @@ jobs:
   portfolio-inference:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker build -f Dockerfile.portfolio -t fleetmind-portfolio .
       - run: docker run --rm --entrypoint python fleetmind-portfolio -c "from fleetmind.hosted import app; assert len(app.routes) == 2"
