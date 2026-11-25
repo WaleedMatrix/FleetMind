@@ -1,0 +1,2 @@
+# Optional broker client for the telemetry simulator, worker, and benchmark.
+confluent-kafka==2.12.2

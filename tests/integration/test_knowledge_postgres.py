@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -179,7 +178,9 @@ def test_retrieval_ranks_real_database_results_and_preserves_citations(store):
         assert [hit.citation.document_id for hit in filtered.results] == ["speed"]
 
 
-def test_knowledge_api_validates_queries_and_supports_empty_and_offline(store):
+def test_knowledge_api_validates_queries_and_supports_empty_and_offline(
+    auth_client, store
+):
     encoder = TestEncoder()
 
     def db_session():
@@ -189,7 +190,7 @@ def test_knowledge_api_validates_queries_and_supports_empty_and_offline(store):
     app.dependency_overrides[get_db] = db_session
     app.dependency_overrides[get_embedder] = OfflineEncoder
     try:
-        with TestClient(app) as client:
+        with auth_client() as client:
             assert client.get("/api/v1/knowledge/status").json()["state"] == "empty"
             base = "/api/v1/knowledge"
             empty = client.post(

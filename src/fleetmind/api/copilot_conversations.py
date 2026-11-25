@@ -1,4 +1,4 @@
-"""Trusted-local conversation persistence and streaming routes."""
+"""Private conversation persistence and streaming routes."""
 
 from contextlib import contextmanager
 from typing import Annotated
@@ -34,7 +34,13 @@ def conversation_store():
     return ConversationStore()
 
 
-Store = Annotated[ConversationStore, Depends(conversation_store)]
+def owned_store(
+    request: Request, store: Annotated[ConversationStore, Depends(conversation_store)]
+):
+    return store.for_owner(request.state.principal.id)
+
+
+Store = Annotated[ConversationStore, Depends(owned_store)]
 Limit = Annotated[int, Query(ge=1, le=50)]
 Offset = Annotated[int, Query(ge=0, le=100_000)]
 
@@ -114,6 +120,8 @@ def cancel(conversation_id: UUID, request_id: UUID, store: Store):
 async def send(
     conversation_id: UUID, payload: MessageInput, request: Request, store: Store
 ):
+    with store_errors():
+        await run_in_threadpool(store.get, conversation_id)
     try:
         settings = Settings.from_environment()
     except ValueError:

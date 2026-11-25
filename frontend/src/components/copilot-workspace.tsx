@@ -95,7 +95,8 @@ function Readiness({
     <span className="copilot-status">
       <i data-ready={provider?.configured === true} />
       {error ? "Provider readiness unavailable" : !provider ? "Checking provider…" : provider.configured
-        ? provider.provider === "mock" ? "Mock provider" : "Provider configured"
+        ? provider.provider === "local_evidence" ? "Local evidence search"
+          : provider.provider === "mock" ? "Mock provider" : "Provider configured"
         : provider.detail}
     </span>
     {provider?.model && <span className="copilot-provider-model">{provider.model}</span>}

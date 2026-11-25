@@ -1,5 +1,7 @@
 "use client";
 
+import { useEngineering } from "@/components/auth-shell";
+
 import { useState } from "react";
 import Link from "next/link";
 import { Activity, ArrowLeft, BrainCircuit, FlaskConical, Radio } from "lucide-react";
@@ -68,6 +70,7 @@ function ModelEvaluation({ evaluation }: { evaluation: Intelligence["evaluation"
 }
 
 export function ModelIntelligence() {
+  const canEngineer = useEngineering();
   const [revision, setRevision] = useState(0);
   const { data, pending, error } = useFleetMindQuery<Intelligence>("model/intelligence", { revision });
   const metadata = data?.metadata;
@@ -80,7 +83,7 @@ export function ModelIntelligence() {
           <strong>FleetMind<span className="brand-dot">.</span></strong>
         </Link>
         <Link className="asset-home-link" href="/"><ArrowLeft size={16} aria-hidden="true" /> Command center</Link>
-        <Link href="/copilot" className="copilot-link">Ask Copilot</Link>
+        {canEngineer && <Link href="/copilot" className="copilot-link">Ask Copilot</Link>}
       </header>
       <main className="content-container model-content">
         <header className="model-hero">

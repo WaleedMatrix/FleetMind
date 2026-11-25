@@ -10,6 +10,7 @@ from starlette.concurrency import run_in_threadpool
 from fleetmind.copilot.conversation_schemas import StreamEvent
 from fleetmind.copilot.orchestration import Orchestrator
 from fleetmind.copilot.schemas import ChatRequest
+from fleetmind.security.protect import stream_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,9 @@ async def conversation_stream(
         return frame(StreamEvent(type=kind, request_id=request_id, **details))
 
     try:
+        if not await stream_allowed(http_request, force=True):
+            yield event("session_expired", detail="Sign in again to use Copilot.")
+            return
         yield event("started", user=reservation.user)
         message = reservation.replay
         if message is None:
@@ -49,6 +53,11 @@ async def conversation_stream(
                 )
             )
             while not producer.done() or not queue.empty():
+                if not await stream_allowed(http_request):
+                    yield event(
+                        "session_expired", detail="Sign in again to use Copilot."
+                    )
+                    return
                 if await http_request.is_disconnected():
                     return
                 try:
@@ -69,6 +78,9 @@ async def conversation_stream(
             if await http_request.is_disconnected():
                 return
             answer = await producer
+            if not await stream_allowed(http_request, force=True):
+                yield event("session_expired", detail="Sign in again to use Copilot.")
+                return
             message = await run_in_threadpool(
                 store.finish,
                 identifier,

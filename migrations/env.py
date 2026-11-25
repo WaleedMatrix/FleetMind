@@ -4,6 +4,8 @@ from fleetmind.copilot.conversation_models import Base
 from fleetmind.db import models  # noqa: F401
 from fleetmind.db.database import engine
 from fleetmind.knowledge.models import KnowledgeBase
+from fleetmind.security import models as security_models  # noqa: F401
+from fleetmind.telemetry import live_models, storage  # noqa: F401
 
 metadata = [Base.metadata, KnowledgeBase.metadata]
 

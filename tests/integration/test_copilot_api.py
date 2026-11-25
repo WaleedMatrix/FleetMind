@@ -1,20 +1,18 @@
 import os
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from fleetmind.api.main import app
 from fleetmind.copilot.execution import ToolExecutor
 from fleetmind.copilot.schemas import ChatResponse
 from fleetmind.copilot.tools import EmptyInput, ToolContext
 
 
-def test_unconfigured_copilot_leaves_inference_api_available(monkeypatch):
+def test_unconfigured_copilot_leaves_inference_api_available(monkeypatch, auth_client):
     monkeypatch.setenv("FLEETMIND_COPILOT_PROVIDER", "disabled")
-    with TestClient(app) as client:
-        assert client.get("/health").json()["model_loaded"]
+    with auth_client() as client:
+        assert client.get("/api/v1/system/status").json()["model_loaded"]
         status = client.get("/api/v1/copilot/status").json()
         assert not status["configured"]
         response = client.post(
@@ -28,9 +26,9 @@ def test_unconfigured_copilot_leaves_inference_api_available(monkeypatch):
         assert invalid.status_code == 422
 
 
-def test_mock_api_nonstreaming_response(monkeypatch):
+def test_mock_api_nonstreaming_response(monkeypatch, auth_client):
     monkeypatch.setenv("FLEETMIND_COPILOT_PROVIDER", "mock")
-    with TestClient(app) as client:
+    with auth_client() as client:
         response = client.post(
             "/api/v1/copilot/chat",
             json={

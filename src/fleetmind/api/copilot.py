@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from fleetmind.copilot.execution import ToolExecutor
 from fleetmind.copilot.orchestration import Orchestrator
-from fleetmind.copilot.providers import ChatCompletionsProvider, MockProvider
+from fleetmind.copilot.providers import make_provider
 from fleetmind.copilot.schemas import ChatRequest, ChatResponse, Diagnostics
 from fleetmind.copilot.settings import MissingCredentials, Settings
 from fleetmind.copilot.tools import ToolContext
@@ -71,11 +71,7 @@ async def copilot_chat(payload: ChatRequest, request: Request, http_response: Re
     if settings.provider == "disabled":
         http_response.status_code = 503
         return response("unavailable", Diagnostics(issues=["provider_not_configured"]))
-    provider = (
-        MockProvider()
-        if settings.provider == "mock"
-        else ChatCompletionsProvider(settings)
-    )
+    provider = make_provider(settings)
     scope = ToolContext(
         question=payload.question,
         asset_id=payload.asset_id,

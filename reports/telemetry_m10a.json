@@ -1,0 +1,165 @@
+{
+  "seconds_per_rate": 5,
+  "cases": [
+    {
+      "case": "rate-1",
+      "target_events_per_s": 1,
+      "events": 5,
+      "producer_acknowledged_per_s": 1.245,
+      "consumer_committed_per_s": 1.236,
+      "sampled_peak_lag": 0,
+      "final_committed_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 5,
+          "p50": 9.104,
+          "p95": 51.846,
+          "p99": 51.846
+        },
+        "database_ms": {
+          "samples": 5,
+          "p50": 20.205,
+          "p95": 35.321,
+          "p99": 35.321
+        },
+        "observation_to_commit_ms": {
+          "samples": 5,
+          "p50": 35.218,
+          "p95": 114.738,
+          "p99": 114.738
+        },
+        "processing_ms": {
+          "samples": 5,
+          "p50": 33.902,
+          "p95": 96.266,
+          "p99": 96.266
+        }
+      },
+      "processed": 5,
+      "duplicates": 0,
+      "dead_lettered": 0,
+      "worker_peak_rss_mib": 192.01,
+      "worker_cpu_s_sampled": 5.422
+    },
+    {
+      "case": "rate-10",
+      "target_events_per_s": 10,
+      "events": 50,
+      "producer_acknowledged_per_s": 10.19,
+      "consumer_committed_per_s": 10.126,
+      "sampled_peak_lag": 3,
+      "final_committed_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 50,
+          "p50": 9.274,
+          "p95": 14.825,
+          "p99": 49.169
+        },
+        "database_ms": {
+          "samples": 50,
+          "p50": 18.336,
+          "p95": 26.913,
+          "p99": 32.907
+        },
+        "observation_to_commit_ms": {
+          "samples": 50,
+          "p50": 33.448,
+          "p95": 506.49,
+          "p99": 658.495
+        },
+        "processing_ms": {
+          "samples": 50,
+          "p50": 32.11,
+          "p95": 49.772,
+          "p99": 85.485
+        }
+      },
+      "processed": 50,
+      "duplicates": 0,
+      "dead_lettered": 0,
+      "worker_peak_rss_mib": 191.8,
+      "worker_cpu_s_sampled": 17.219
+    },
+    {
+      "case": "rate-50",
+      "target_events_per_s": 50,
+      "events": 250,
+      "producer_acknowledged_per_s": 50.0,
+      "consumer_committed_per_s": 28.169,
+      "sampled_peak_lag": 113,
+      "final_committed_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 250,
+          "p50": 10.309,
+          "p95": 14.302,
+          "p99": 15.979
+        },
+        "database_ms": {
+          "samples": 250,
+          "p50": 18.903,
+          "p95": 23.549,
+          "p99": 27.459
+        },
+        "observation_to_commit_ms": {
+          "samples": 250,
+          "p50": 2099.47,
+          "p95": 3736.586,
+          "p99": 3849.905
+        },
+        "processing_ms": {
+          "samples": 250,
+          "p50": 34.029,
+          "p95": 43.19,
+          "p99": 49.606
+        }
+      },
+      "processed": 250,
+      "duplicates": 0,
+      "dead_lettered": 0,
+      "worker_peak_rss_mib": 192.77,
+      "worker_cpu_s_sampled": 33.125
+    },
+    {
+      "case": "burst",
+      "target_events_per_s": null,
+      "events": 250,
+      "producer_acknowledged_per_s": 155.28,
+      "consumer_committed_per_s": 27.679,
+      "sampled_peak_lag": 207,
+      "final_committed_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 250,
+          "p50": 10.323,
+          "p95": 14.998,
+          "p99": 19.491
+        },
+        "database_ms": {
+          "samples": 250,
+          "p50": 18.668,
+          "p95": 25.252,
+          "p99": 30.979
+        },
+        "observation_to_commit_ms": {
+          "samples": 250,
+          "p50": 3953.195,
+          "p95": 6986.016,
+          "p99": 7342.339
+        },
+        "processing_ms": {
+          "samples": 250,
+          "p50": 33.602,
+          "p95": 47.728,
+          "p99": 55.479
+        }
+      },
+      "processed": 250,
+      "duplicates": 0,
+      "dead_lettered": 0,
+      "worker_peak_rss_mib": 192.2,
+      "worker_cpu_s_sampled": 32.984
+    }
+  ]
+}

@@ -6,15 +6,17 @@ import pytest
 from pydantic import ValidationError
 
 from fleetmind.copilot.orchestration import Orchestrator
+from fleetmind.copilot.prompts import final_messages, start_messages
 from fleetmind.copilot.providers import (
     ChatCompletionsProvider,
     Completion,
     MockProvider,
     ProviderError,
+    make_provider,
     parse_completion,
 )
 from fleetmind.copilot.relevance import aspect_queries, relevant
-from fleetmind.copilot.schemas import ChatRequest, Tokens, ToolCall
+from fleetmind.copilot.schemas import ChatRequest, Citation, Fact, Tokens, ToolCall
 from fleetmind.copilot.settings import Settings
 from fleetmind.copilot.tools import REGISTRY, ToolContext, ToolFailure
 from fleetmind.knowledge.schemas import SearchHit, SourceCitation
@@ -37,6 +39,40 @@ def test_provider_configuration_uses_safe_defaults(monkeypatch):
     monkeypatch.setenv("FLEETMIND_COPILOT_PROVIDER", "ollama")
     monkeypatch.setenv("FLEETMIND_COPILOT_BASE_URL", "http://127.0.0.1:11434/v1")
     assert Settings.from_environment().token_parameter == "max_tokens"
+    monkeypatch.setenv("FLEETMIND_COPILOT_PROVIDER", "local_evidence")
+    monkeypatch.delenv("FLEETMIND_COPILOT_BASE_URL")
+    monkeypatch.delenv("FLEETMIND_COPILOT_API_KEY")
+    settings = Settings.from_environment()
+    assert settings.provider == "local_evidence"
+    assert not settings.base_url
+    assert not settings.api_key
+
+
+def test_local_provider_uses_existing_tools_and_selects_only_matching_facts():
+    provider = make_provider(Settings(provider="local_evidence"))
+    question = ChatRequest(question="How is the thermal gap calculated?")
+    plan = asyncio.run(provider.complete(start_messages(question), []))
+    assert plan.calls[0].name == "search_knowledge"
+    citation = Citation(id="source", kind="knowledge", title="Sensor terminology")
+    facts = {
+        "f1": Fact(
+            id="f1", text="Tool wear is recorded in minutes.", citation=citation
+        ),
+        "f2": Fact(
+            id="f2",
+            text="The thermal gap is the temperature difference.",
+            citation=citation,
+        ),
+    }
+    selection = asyncio.run(provider.complete(final_messages(question, facts), None))
+    assert json.loads(selection.text) == {"status": "answered", "fact_ids": ["f2"]}
+
+    question = ChatRequest(question="Explain the SHAP contributions for prediction 16.")
+    plan = asyncio.run(
+        provider.complete(start_messages(question, prediction_id=16), [])
+    )
+    assert plan.calls[0].name == "explain_prediction"
+    assert json.loads(plan.calls[0].arguments) == {"prediction_id": 16}
 
 
 def test_adapter_retries_rate_limit_and_parses_structured_call():

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEngineering } from "@/components/auth-shell";
+
 import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Database, Loader2, ScanLine, Sparkles, Wrench } from "lucide-react";
@@ -26,6 +28,7 @@ type Investigation = { record: Prediction; trigger: HTMLButtonElement | null };
 export function PredictionHistory({
   page, filter, offset, failed, onFilterChange, onPageChange,
 }: PredictionHistoryProps) {
+  const canEngineer = useEngineering();
   const [investigation, setInvestigation] = useState<Investigation | null>(null);
   const activeFilter = useRef<HTMLButtonElement>(null);
   const headingId = useId();
@@ -46,7 +49,7 @@ export function PredictionHistory({
           </h3>
           <p>Open a prediction to review its original readings and model score.</p>
         </div>
-        <Link href="/copilot" className="copilot-link copilot-entry"><Sparkles size={15} aria-hidden="true" /> Copilot</Link>
+        {canEngineer && <Link href="/copilot" className="copilot-link copilot-entry"><Sparkles size={15} aria-hidden="true" /> Copilot</Link>}
       </div>
 
       <div className="alert-center-filters" role="group" aria-label="Filter predictions by alert level">

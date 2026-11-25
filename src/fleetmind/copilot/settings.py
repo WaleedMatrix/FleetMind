@@ -28,9 +28,9 @@ class Settings:
             return os.getenv(f"FLEETMIND_COPILOT_{key}", str(default)).strip()
 
         provider = value("PROVIDER", "disabled")
-        if provider not in {"disabled", "openai", "ollama", "mock"}:
+        if provider not in {"disabled", "openai", "ollama", "mock", "local_evidence"}:
             raise ValueError("Invalid Copilot provider.")
-        if provider == "disabled":
+        if provider in {"disabled", "local_evidence"}:
             return cls(provider=provider)
         default_url = (
             "http://127.0.0.1:11434/v1"

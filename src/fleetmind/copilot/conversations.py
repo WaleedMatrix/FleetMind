@@ -48,12 +48,22 @@ def validate_context(db, asset_id, prediction_id):
 
 
 class ConversationStore:
-    def __init__(self, factory=SessionLocal):
+    def __init__(self, factory=SessionLocal, owner_id: UUID | None = None):
         self.factory = factory
+        self.owner_id = owner_id
 
-    @staticmethod
-    def _get(db, identifier: UUID, *, lock: bool = False):
-        row = db.get(Conversation, identifier, with_for_update=lock)
+    def for_owner(self, owner_id: UUID):
+        return ConversationStore(self.factory, owner_id)
+
+    def _lookup(self, db, identifier: UUID, *, lock: bool = False):
+        query = select(Conversation).where(
+            Conversation.id == identifier,
+            Conversation.owner_id == self.owner_id,
+        )
+        return db.scalar(query.with_for_update() if lock else query)
+
+    def _get(self, db, identifier: UUID, *, lock: bool = False):
+        row = self._lookup(db, identifier, lock=lock)
         if row is None:
             raise ConversationError(404, "Conversation not found.")
         return row
@@ -92,14 +102,17 @@ class ConversationStore:
     def create(self, payload):
         with self.factory.begin() as db:
             validate_context(db, payload.asset_id, payload.prediction_id)
-            row = Conversation(**payload.model_dump())
+            row = Conversation(**payload.model_dump(), owner_id=self.owner_id)
             db.add(row)
             db.flush()
             return ConversationInfo.model_validate(row)
 
     def list(self, q, archived, limit, offset):
         with self.factory() as db:
-            query = select(Conversation).where(Conversation.archived == archived)
+            query = select(Conversation).where(
+                Conversation.owner_id == self.owner_id,
+                Conversation.archived == archived,
+            )
             if q:
                 matches_message = (
                     select(ConversationMessage.id)
@@ -150,10 +163,12 @@ class ConversationStore:
             return ConversationInfo.model_validate(row)
 
     def delete(self, identifier, confirmation):
-        if identifier != confirmation:
-            raise ConversationError(400, "Confirm deletion with the conversation ID.")
         with self.factory.begin() as db:
             row = self._get(db, identifier, lock=True)
+            if identifier != confirmation:
+                raise ConversationError(
+                    400, "Confirm deletion with the conversation ID."
+                )
             if self._active(db, identifier):
                 raise ConversationError(409, "Stop the active request before deleting.")
             db.delete(row)
@@ -250,12 +265,14 @@ class ConversationStore:
 
     def state(self, identifier, request_id) -> MessageState | None:
         with self.factory() as db:
+            if self._lookup(db, identifier) is None:
+                return None
             row = self._by_request(db, identifier, request_id)
             return row.state if row else None
 
     def terminate(self, identifier, request_id, state: MessageState = "cancelled"):
         with self.factory.begin() as db:
-            row = db.get(Conversation, identifier, with_for_update=True)
+            row = self._lookup(db, identifier, lock=True)
             if row is None:
                 return None
             user = self._by_request(db, identifier, request_id)
@@ -267,7 +284,7 @@ class ConversationStore:
 
     def finish(self, identifier, request_id, answer: ChatResponse, provider, model):
         with self.factory.begin() as db:
-            row = db.get(Conversation, identifier, with_for_update=True)
+            row = self._lookup(db, identifier, lock=True)
             if row is None:
                 return None
             self._active(db, identifier)

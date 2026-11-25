@@ -38,10 +38,20 @@ class Conversation(Base):
         Index(
             "ix_copilot_conversation_archive_updated", "archived", "updated_at", "id"
         ),
+        Index(
+            "ix_copilot_conversation_owner_archive",
+            "owner_id",
+            "archived",
+            "updated_at",
+            "id",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True, default=uuid4)
     title: Mapped[str] = mapped_column(String(120))
+    owner_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("auth_users.id", name="fk_copilot_conversation_owner"),
+    )
     archived: Mapped[bool] = mapped_column(server_default=text("false"))
     asset_id: Mapped[str | None] = mapped_column(
         ForeignKey(

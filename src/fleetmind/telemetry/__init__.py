@@ -1,0 +1,1 @@
+"""Optional FleetMind telemetry ingestion."""

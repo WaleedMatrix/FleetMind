@@ -1,6 +1,8 @@
 """Structured Chat Completions adapter and a deterministic test provider."""
 
 import asyncio
+import json
+import re
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -8,6 +10,7 @@ from typing import Protocol
 import httpx
 from pydantic import ValidationError
 
+from fleetmind.copilot.relevance import terms
 from fleetmind.copilot.schemas import Tokens, ToolCall
 from fleetmind.copilot.settings import Settings
 
@@ -42,6 +45,62 @@ class MockProvider:
         if isinstance(result, Exception):
             raise result
         return result
+
+
+class LocalEvidenceProvider:
+    """Select existing facts with a bounded, deterministic local search."""
+
+    async def complete(self, messages, tools):
+        if tools is None:
+            payload = json.loads(messages[-1]["content"])
+            anchors = terms(payload["question"])
+            ranked = sorted(
+                payload["facts"],
+                key=lambda fact: -len(anchors & terms(fact["text"])),
+            )
+            selected = [fact["id"] for fact in ranked if anchors & terms(fact["text"])][
+                :3
+            ]
+            return Completion(
+                json.dumps(
+                    {
+                        "status": "answered" if selected else "insufficient_evidence",
+                        "fact_ids": selected,
+                    }
+                )
+            )
+        if messages[-1]["role"] == "tool":
+            return Completion("READY")
+        payload = json.loads(messages[1]["content"])
+        question = payload["question"]
+        anchors = terms(question)
+        match = re.search(r"\bprediction\s*#?\s*([1-9][0-9]{0,9})\b", question, re.I)
+        prediction_id = int(match[1]) if match else payload["selected_prediction_id"]
+        tool, arguments = "search_knowledge", {}
+        if prediction_id and {"prediction", "shap", "contribution"} & anchors:
+            tool = (
+                "explain_prediction"
+                if {"shap", "contribution"} & anchors
+                else "get_prediction"
+            )
+            arguments = {"prediction_id": prediction_id}
+        elif payload["asset_id"] and {"history", "latest", "recent"} & anchors:
+            tool = "get_asset_history"
+        elif (
+            payload["asset_id"] and {"registered", "registration", "location"} & anchors
+        ):
+            tool = "get_asset"
+        elif {"precision", "recall", "evaluation", "threshold"} & anchors:
+            tool = "get_model_information"
+        return Completion(
+            calls=[
+                ToolCall(
+                    id="local-read",
+                    name=tool,
+                    arguments=json.dumps(arguments),
+                )
+            ]
+        )
 
 
 class ChatCompletionsProvider:
@@ -103,6 +162,8 @@ class ChatCompletionsProvider:
 
 
 def make_provider(settings: Settings) -> Provider:
+    if settings.provider == "local_evidence":
+        return LocalEvidenceProvider()
     return (
         MockProvider()
         if settings.provider == "mock"
@@ -111,8 +172,6 @@ def make_provider(settings: Settings) -> Provider:
 
 
 def parse_completion(body: bytes | bytearray) -> Completion:
-    import json
-
     try:
         data = json.loads(body)
         choice = data["choices"][0]

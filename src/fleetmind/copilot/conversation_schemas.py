@@ -31,6 +31,7 @@ EventType = Literal[
     "clarification",
     "final",
     "completed",
+    "session_expired",
     "error",
     "cancelled",
 ]

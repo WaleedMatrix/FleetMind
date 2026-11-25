@@ -20,6 +20,7 @@ from scripts.copilot_fixtures import (
     ScriptedProvider,
 )
 from scripts.evaluate_knowledge import percentiles
+from scripts.manage_security import read_password
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,7 +96,7 @@ async def mock_cases(cases):
         fixture.engine.dispose()
 
 
-def live_cases(cases, base_url):
+def live_cases(cases, base_url, username, origin):
     url = urlsplit(base_url)
     if (
         url.scheme not in {"http", "https"}
@@ -106,29 +107,48 @@ def live_cases(cases, base_url):
         raise ValueError("Use a local FleetMind API URL without credentials.")
     base_url = base_url.rstrip("/")
     with httpx.Client(timeout=130, follow_redirects=False) as client:
-        status = client.get(f"{base_url}/api/v1/copilot/status")
-        status.raise_for_status()
-        if not status.json()["configured"] or status.json()["provider"] not in {
-            "openai",
-            "ollama",
-        }:
-            raise ValueError(
-                "Configure a real hosted or Ollama provider before live evaluation."
-            )
-        return [
-            inspect_case(
-                case,
-                ChatResponse.model_validate(
-                    client.post(
-                        f"{base_url}/api/v1/copilot/chat",
-                        json=payload(case).model_dump(mode="json"),
-                    ).json()
-                ),
-                live=True,
-            )
-            for case in cases
-            if case.get("live")
-        ]
+        login = client.post(
+            f"{base_url}/api/v1/auth/login",
+            headers={"Origin": origin},
+            json={
+                "username": username,
+                "password": read_password("FleetMind password: "),
+            },
+        )
+        if not login.is_success:
+            raise ValueError(f"FleetMind sign-in failed ({login.status_code}).")
+        csrf = client.cookies.get("__Host-fleetmind_csrf") or client.cookies.get(
+            "fleetmind_csrf"
+        )
+        client.headers.update({"Origin": origin, "X-FleetMind-CSRF": csrf})
+        try:
+            status = client.get(f"{base_url}/api/v1/copilot/status")
+            status.raise_for_status()
+            if not status.json()["configured"] or status.json()["provider"] not in {
+                "openai",
+                "ollama",
+            }:
+                raise ValueError(
+                    "Configure a hosted or Ollama provider before live evaluation."
+                )
+            rows = []
+            for case in cases:
+                if not case.get("live"):
+                    continue
+                result = client.post(
+                    f"{base_url}/api/v1/copilot/chat",
+                    json=payload(case).model_dump(mode="json"),
+                )
+                if result.status_code not in (200, 503, 504):
+                    result.raise_for_status()
+                rows.append(
+                    inspect_case(
+                        case, ChatResponse.model_validate(result.json()), live=True
+                    )
+                )
+            return rows
+        finally:
+            client.post(f"{base_url}/api/v1/auth/logout")
 
 
 def summarize(rows, *, live):
@@ -179,11 +199,21 @@ def main():
         help="Explicitly exercise a configured local API and its real provider",
     )
     parser.add_argument("--output", type=Path, help="A new report file")
+    parser.add_argument(
+        "--username", help="Engineer or administrator username for live evaluation"
+    )
+    parser.add_argument(
+        "--origin",
+        default="http://127.0.0.1:3000",
+        help="Trusted browser origin for local live evaluation",
+    )
     args = parser.parse_args()
+    if args.live_api and not args.username:
+        parser.error("--live-api requires --username.")
     source = (ROOT / "docs/copilot/evaluation.json").read_bytes()
     cases = json.loads(source)
     rows = (
-        live_cases(cases, args.live_api)
+        live_cases(cases, args.live_api, args.username, args.origin)
         if args.live_api
         else asyncio.run(mock_cases(cases))
     )

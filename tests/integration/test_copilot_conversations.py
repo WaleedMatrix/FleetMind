@@ -10,7 +10,6 @@ from uuid import UUID, uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -28,13 +27,19 @@ from fleetmind.copilot.streaming import conversation_stream
 from fleetmind.copilot.tools import ToolContext
 from fleetmind.copilot.validation import response
 from fleetmind.db.models import Asset, PredictionHistory
+from fleetmind.security.models import (
+    AuditEvent,
+    AuthSession,
+    ServiceCredential,
+    UserAccount,
+)
 
 BASE = "/api/v1/copilot/conversations"
 QUESTION = "Summarize prediction 1 for press-a."
 
 
 @pytest.fixture
-def store():
+def store(seed_account):
     engine = create_engine(
         "sqlite://",
         poolclass=StaticPool,
@@ -50,11 +55,15 @@ def store():
         tables=[
             Asset.__table__,
             PredictionHistory.__table__,
+            UserAccount.__table__,
+            AuthSession.__table__,
+            AuditEvent.__table__,
+            ServiceCredential.__table__,
             Conversation.__table__,
             Conversation.metadata.tables["copilot_messages"],
         ],
     )
-    factory = sessionmaker(engine)
+    factory = sessionmaker(engine, expire_on_commit=False)
     with factory.begin() as db:
         db.add_all(
             [
@@ -81,18 +90,18 @@ def store():
             )
         )
     try:
-        yield ConversationStore(factory)
+        yield ConversationStore(factory, seed_account(factory))
     finally:
         engine.dispose()
 
 
 @pytest.fixture
-def client(store, monkeypatch):
+def client(store, monkeypatch, auth_client):
     monkeypatch.setenv("FLEETMIND_COPILOT_PROVIDER", "mock")
     monkeypatch.setattr(routes, "ToolExecutor", lambda: ToolExecutor(store.factory))
     app.dependency_overrides[routes.conversation_store] = lambda: store
     try:
-        with TestClient(app) as http:
+        with auth_client(store.factory) as http:
             yield http
     finally:
         del app.dependency_overrides[routes.conversation_store]

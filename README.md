@@ -41,6 +41,33 @@ educational machine learning benchmark.
 FleetMind is a demonstration project.
 It is not intended for operational maintenance decisions.
 
+## Sign in and manage access
+
+Milestone 11A requires a FleetMind account for the dashboard and API. Viewers
+can monitor assessments. Engineers can submit readings, manage assets, and
+use private Copilot conversations. Administrators can also manage users and
+review audit events.
+
+1. Install the current `requirements.txt` and confirm `DATABASE_URL` points
+   to the intended instance. Back up an existing database before proceeding.
+2. Run `python -m alembic upgrade head`, then confirm
+   `python -m alembic current` reports `0007_application_security`.
+3. Run `python -m scripts.manage_security bootstrap --username your-admin`.
+   The CLI prompts for a password and confirmation without echoing either.
+4. For local development, set `FLEETMIND_AUTH_INSECURE_LOCAL_HTTP=1` and exact
+   loopback frontend origins as shown in `.env.example`. Start FastAPI with
+   `python -m uvicorn fleetmind.api.main:app --host 127.0.0.1 --port 8000`.
+   From `frontend`, run `npm run dev -- --hostname 127.0.0.1` and open
+   `http://127.0.0.1:3000/login`.
+
+`GET /health` is a public liveness probe. Use authenticated
+`GET /api/v1/system/status` for model readiness. Conversation owners are
+assigned at creation. Administrators can explicitly archive or adopt legacy
+conversations from **Administration → Legacy conversations**.
+
+See [FleetMind security architecture](docs/security.md) for the permission
+matrix, simulator credentials, deployment settings, and audit findings.
+
 ## Asset Intelligence
 
 Open **Assets** from the dashboard to register equipment and see its recorded
@@ -262,8 +289,8 @@ Milestone 9B adds `POST /api/v1/copilot/chat` and
 `GET /api/v1/copilot/status`. Copilot starts disabled. Status reports
 configuration, and the provider connection is checked when a chat request
 needs it. The existing prediction and monitoring API can run independently.
-Authenticate and authorize Copilot and its model access before deploying beyond
-trusted local development.
+Copilot requires an engineer or administrator session. Set provider credentials
+on the API server.
 
 ### Providers and budgets
 
@@ -271,7 +298,7 @@ The server reads these variables from its environment or local `.env`.
 
 | Variable suffix after `FLEETMIND_COPILOT_` | Default / meaning |
 | --- | --- |
-| `PROVIDER` | `disabled`, `openai`, `ollama`, or `mock` |
+| `PROVIDER` | `disabled`, `openai`, `ollama`, `local_evidence`, or `mock` |
 | `MODEL` | Model name from your provider. The model must support tools and JSON output. |
 | `BASE_URL` | OpenAI uses `https://api.openai.com/v1`. Ollama uses `http://127.0.0.1:11434/v1`. Custom endpoints require HTTPS or loopback HTTP. |
 | `API_KEY` | Server-side credential for the chosen hosted provider. For the default OpenAI host, `OPENAI_API_KEY` also works. |
@@ -287,6 +314,13 @@ Hosted requests send the question, submitted context, and tool evidence to the
 configured provider.
 The default `mock` configuration abstains. The evaluation harness supplies
 scripted calls for deterministic testing.
+
+Set `FLEETMIND_COPILOT_PROVIDER=local_evidence` in the server's `.env` and
+restart FastAPI to use Copilot without a generative model or API key. The
+workspace labels this mode **Local evidence search**. It selects and cites
+matching saved facts from the knowledge base, scoped records, or model report.
+It supports targeted questions such as “How is the thermal gap calculated?”
+and may abstain on broader questions. Seed the knowledge corpus before using it.
 
 ```powershell
 $env:FLEETMIND_COPILOT_PROVIDER = 'openai'
@@ -338,7 +372,7 @@ returns a single structured response and does not write conversation history.
 ```powershell
 python -m scripts.evaluate_copilot --output reports/copilot_mock_local.json
 python -m scripts.evaluate_copilot_retrieval --output reports/copilot_retrieval_local.json
-python -m scripts.evaluate_copilot --live-api http://127.0.0.1:8000 --output reports/copilot_live_local.json
+python -m scripts.evaluate_copilot --live-api http://127.0.0.1:8000 --username your-engineer --output reports/copilot_live_local.json
 ```
 
 The [51 scripted cases](docs/copilot/evaluation.json) cover record lookup,
@@ -496,17 +530,372 @@ and closing the connection changed the stored request to cancelled in 178 ms.
 In the Edge smoke test, a prediction and SHAP answer appeared in 755 ms and
 explicit Stop restored the composer in 181 ms.
 
-Conversation storage is for trusted local development. Conversation IDs segment
-requests and history within the application. All clients with access to the API
-can currently list, inspect, update, and delete those records. Add authentication,
-per-user authorization, operational request limits, and a retention policy before
-sharing the service. Questions and validated replies remain in the database until
-their conversation is deleted. Hosted providers receive relevant serialized context
-and evidence. Provider credentials and private reasoning are excluded from API
-responses and persisted conversation data.
+Signed-in engineers and administrators can access their own Copilot conversations.
+Questions and validated replies stay in the database until their conversation is
+deleted. Hosted providers receive relevant serialized context and evidence.
+Provider credentials and private reasoning are excluded from API responses and
+persisted conversations.
 
 Citations retain the exact selected facts. Source inspection loads current registry
 or knowledge data by ID. If the cited excerpt was superseded or removed, the stored
 quotation remains available and the source inspector reports that the excerpt is
 unavailable. Browser and latency checks used a deterministic mock provider with the
 real FleetMind tools. Live LLM answer quality, latency, and token usage remain unverified.
+
+## Asynchronous telemetry ingestion
+
+The optional telemetry path sends versioned sensor readings through a
+Kafka-compatible broker. The worker validates each event and its registered
+asset, runs the same frozen preprocessing and XGBoost pipeline as
+`POST /api/v1/predict`, then writes the prediction and a telemetry receipt in
+one PostgreSQL transaction. Existing dashboards can read the resulting
+predictions through their existing API endpoints.
+
+### Broker choice and startup
+
+Redpanda is the default for local Windows Docker Desktop development. Its
+single-node dev-container mode uses one core and a configured 768 MiB memory
+budget, with a 1 GiB container limit. The pinned image is
+`redpandadata/redpanda:v25.3.11`. Apache Kafka in KRaft mode is also a viable
+Kafka-protocol broker without ZooKeeper. Its standard Docker image runs a JVM
+and combines broker and controller roles for single-node development. Redpanda
+keeps this development profile small and simple. These are configuration
+tradeoffs. The memory limits configure the containers. [Redpanda quickstart](https://docs.redpanda.com/streaming/25.3/get-started/quick-start/) and [Apache Kafka Docker documentation](https://kafka.apache.org/41/getting-started/docker/).
+For Docker Desktop, allow separate headroom for PostgreSQL and the Linux VM.
+The worker runs on the host and loads one copy of the frozen model per process.
+
+```powershell
+python -m pip install -r requirements-telemetry.txt
+docker compose up -d db
+docker compose --profile telemetry up -d --wait broker
+```
+
+The broker publishes only its external Kafka listener on
+`127.0.0.1:19092`. Its internal Compose endpoint is `broker:9092`.
+`FLEETMIND_KAFKA_PORT` changes the host port and advertised address together.
+The health check queries Kafka cluster metadata. This profile enables fsync
+and disables the dev-container write cache. Broker data uses the separate
+`fleetmind_brokerdata` named volume. Regular API startup needs neither the
+broker nor the optional Python client.
+
+Check that `DATABASE_URL` targets the intended database, then apply the schema
+revision explicitly. Deployment does not automatically run migrations.
+
+```powershell
+python -m alembic current
+python -m alembic upgrade head
+python -m alembic check
+```
+
+Revision `0005_telemetry_assessments` adds one receipt table with a unique
+event ID and a one-to-one prediction reference. Existing tables, including
+predictions without telemetry metadata, keep their original shape.
+`GET /api/v1/telemetry/status` reports durable assessment count and latest
+ingestion and assessment timestamps. It also reports when the migration is
+required. A ready database response does not establish broker connectivity
+or worker liveness.
+
+### Commands and event format
+
+Provision the input and dead-letter topics before starting the worker.
+Default names are `fleetmind.telemetry.v1` and
+`fleetmind.telemetry.dlq.v1`, and the default group is
+`fleetmind-inference-v1`. The provisioner requests three input partitions,
+one dead-letter partition, and replication factor one. It leaves existing
+topics intact. This local profile disables automatic topic creation.
+
+```powershell
+python -m scripts.telemetry_worker --create-topics
+python -m scripts.telemetry_worker
+# Register press-01 and press-02 with the FleetMind asset registry first.
+python -m scripts.produce_telemetry --asset press-01 --asset press-02 --rate 10 --count 100 --seed 42 --scenario normal
+python -m scripts.produce_telemetry --asset press-01 --rate 50 --duration 5 --seed 42 --scenario stress
+```
+
+Run the worker and producer in separate terminals. Ctrl+C stops new work.
+The worker lets a successful in-progress assessment reach its offset
+acknowledgement and exits without acknowledging unfinished retry work.
+Use `--bootstrap`, `--topic`, `--dead-letter-topic`, and `--group`, or
+`FLEETMIND_KAFKA_BOOTSTRAP_SERVERS`, `FLEETMIND_TELEMETRY_TOPIC`,
+`FLEETMIND_TELEMETRY_DLQ`, and `FLEETMIND_TELEMETRY_GROUP`.
+
+The record key must be the UTF-8 asset ID. Each value is a UTF-8 JSON object
+up to 16 KiB. Version 1 requires a UUID, a registered asset ID, a UTC
+observation timestamp, a declared source, and the six existing model inputs.
+The numeric bounds prevent unsafe model input representations. They do not
+establish physical plausibility or authenticated provenance.
+
+```json
+{
+  "schema_version": 1,
+  "event_id": "3308c860-2ba4-4bb8-9253-760b7a4a2b88",
+  "asset_id": "press-01",
+  "observed_at": "2026-01-06T12:00:00Z",
+  "source": "simulated",
+  "machine_type": "M",
+  "air_temperature_k": 299.5,
+  "process_temperature_k": 310.0,
+  "rotational_speed_rpm": 1800,
+  "torque_nm": 42.75,
+  "tool_wear_min": 125
+}
+```
+
+The simulator cycles through registered assets, seeds the sensor values,
+and generates new event IDs and observation timestamps each run. Use
+`--rate 0` with a bounded count for a burst. Normal and stress readings are
+synthetic inputs for pipeline testing. They do not represent validated
+physical degradation. Both sources are caller-declared. A `telemetry` label
+provides no independent verification of a device or reading.
+
+### Delivery, retries, and diagnostics
+
+The publisher waits for the broker's delivery callback, uses all-replica
+acknowledgement with producer idempotence, and bounds retries and the delivery
+deadline. An unconfirmed publish ends that simulator run. Broker replication
+factor one provides no redundancy.
+
+The worker handles one offset at a time and acknowledges it synchronously
+after the PostgreSQL transaction commits, or after a rejected record is
+acknowledged on the dead-letter topic. A crash after database commit and
+before Kafka acknowledgement can replay the event. The receipt's unique UUID
+prevents duplicate database effects, and a different normalized payload for
+the same ID is rejected. Transient database failures get bounded retries.
+If they exhaust, or if a broker acknowledgement fails, the worker stops with
+the unresolved offset pending. It never advances past that offset. Restart
+with the same group after recovery.
+
+Dead letters contain the failure category, original topic, partition and
+offset, rejection time, and an event ID when the contract validated. They omit
+raw payloads and keys. A crash between DLQ delivery and offset commit can
+duplicate a dead letter. Its stable original-location key permits deduplication.
+FleetMind does not publish downstream assessment events in this phase.
+The design is at-least-once delivery with idempotent prediction effects.
+
+The observation clock is supplied by the producer. Ingestion time records
+when the worker polled the ultimately persisted delivery. Assessment time is
+assigned after inference, before the commit. Worker JSON diagnostics distinguish
+received, processed (new durable assessments), duplicates, invalid records,
+retried events, retry attempts, acknowledged dead letters, and committed
+offsets. Inference and successful database transaction timings use a
+monotonic clock. Observation-to-commit age uses UTC wall clocks, and can be
+negative when clocks disagree. Processing duration includes offset
+acknowledgement. Lag is the sampled offset backlog for currently assigned
+partitions, using librdkafka's non-blocking committed-offset statistics. An unavailable
+sample is null. Percentiles use up to the latest 4,096 samples per metric.
+
+### Reproduce the local workload tests
+
+Use a separate PostgreSQL database named `fleetmind_*_test` and a disposable
+broker. Migrate the test database to head before running the worker or test
+suite. The benchmark creates unique assets, topics, and consumer groups only
+on the explicitly supplied disposable services.
+
+```powershell
+$env:FLEETMIND_TELEMETRY_TEST_DATABASE_URL = $env:DATABASE_URL
+$env:FLEETMIND_TELEMETRY_TEST_BOOTSTRAP = '127.0.0.1:19092'
+python -m pytest tests/integration/test_telemetry_broker.py
+python -m scripts.benchmark_telemetry --disposable --seconds 5 --burst 250
+```
+
+The benchmark measures scheduled 1, 10 and 50 events per second and a bounded
+burst. It reports acknowledgement and committed throughput over the observed
+window, p50/p95/p99 latency, sampled peak lag, and independently checked final
+lag. Windows worker
+CPU time and RSS are sampled when the optional `psutil` package is available.
+Resource samples include worker startup. Short trials and single-node
+durability characterize this local development setup.
+
+### Milestone 10A validation results
+
+The Windows Docker Desktop run used Redpanda 25.3.11, PostgreSQL 17,
+one inference worker, eight logical processors, and `OMP_NUM_THREADS=4`.
+The [raw benchmark report](reports/telemetry_m10a.json) includes database and
+inference timings and resource samples.
+
+| Offered workload | Events | Producer ack/s | Consumer commit/s | Observation-to-DB-commit p50 / p95 / p99 (ms) | Sampled peak lag |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1/s | 5 | 1.25 | 1.24 | 35 / 115 / 115 | 0 |
+| 10/s | 50 | 10.19 | 10.13 | 33 / 506 / 658 | 3 |
+| 50/s | 250 | 50.00 | 28.17 | 2,099 / 3,737 / 3,850 | 113 |
+| Burst | 250 | 155.28 | 27.68 | 3,953 / 6,986 / 7,342 | 207 |
+
+All 555 events were persisted, and independently checked final lag was zero
+in every case. At 50/s the single worker accumulated backlog and drained it
+after publishing stopped. Throughput is calculated from the start of publishing
+and includes the immediate first event, which matters for the five-event trial.
+The worker peaked at about 193 MiB RSS. Sampled CPU time, including startup,
+ranged from 5.4 to 33.1 seconds across workloads. A separate Docker snapshot
+showed 153 MiB for Redpanda and 341 MiB for Apache Kafka KRaft 4.1.2 under their
+single-node test configurations. Broker CPU snapshot readings were 0.47% and
+2.11%, respectively. These instantaneous samples depend on process activity.
+
+Real-broker tests passed against both Redpanda and Kafka KRaft. They covered the
+database-commit/offset-acknowledgement gap, duplicate redelivery, concurrent
+inserts, malformed input, missing assets, type mismatches, reused IDs with
+changed payloads, a terminated PostgreSQL connection, and graceful shutdown.
+The migration test compared legacy table identities and contents before and
+after the upgrade.
+
+Use the broker only on trusted local development networks. The Compose
+profile is plaintext, and the read-only API status route inherits FleetMind's
+local-development security model. Production use needs authenticated producers
+and access control, encryption, retention and replay policies, monitoring,
+and replicated brokers. Clock skew, partition changes, and producers using
+different partitioners can affect cross-stream ordering. The worker preserves
+the broker's order within each assigned partition.
+
+## Live Telemetry Command Center
+
+Open `/telemetry` from the dashboard. The page shows committed assessment
+history, infrastructure status, worker metrics, and redacted dead-letter reports.
+Select an assessment to inspect its event ID, UTC timestamps, original readings,
+and SHAP explanation. The drawer links to the registered asset and Copilot.
+
+With the existing PostgreSQL service running, apply the migration explicitly
+against the intended database. Start the optional broker and worker as in 10A.
+
+```powershell
+python -m alembic current
+python -m alembic upgrade head
+python -m alembic check
+docker compose --profile telemetry up -d --wait broker
+python -m scripts.telemetry_worker --create-topics
+python -m scripts.telemetry_worker
+```
+
+Revision `0006_telemetry_live_monitoring` adds stream records and metrics
+tables. It briefly locks inserts into the telemetry receipt table while
+backfilling existing receipts. Backfilled cursor order is deterministic by
+prediction ID because historical commit order is unavailable. Prediction
+IDs, timestamps, and stored inputs are preserved. The trigger also captures
+new receipts inserted by a 10A worker after migration. Restart workers with
+the 10B code for new diagnostics.
+
+### SSE and reconnect behavior
+
+`GET /api/v1/telemetry/assessments` returns up to 50 recent rows plus the
+snapshot cursor. It searches up to the latest 4,096 stream positions and
+supports `asset_id` and `alert_level` filters. Open
+`GET /api/v1/telemetry/stream?cursor=<cursor>` with the same filters.
+`Last-Event-ID` takes precedence over the query cursor. A connection with
+neither cursor starts at the current tail. Cursor strings belong to the
+current database and feed filter.
+
+| Event | Meaning |
+| --- | --- |
+| `ready` | Stream established at the given cursor |
+| `assessment` | Committed receipt, original prediction, observation, ingestion, and assessment timestamps |
+| `cursor` | Advance past scanned positions that did not match the filters |
+| `heartbeat` | Keeps an idle stream open every 10 seconds |
+| `reset` | Resume cursor is ahead of the current database, so reload the snapshot |
+| `unavailable` | Storage or connection capacity is unavailable |
+
+SSE `id` fields are decimal strings. A PostgreSQL trigger creates each
+stream row inside the receipt transaction. It updates a shared cursor row,
+whose write lock remains held through commit. A later transaction cannot
+publish a higher cursor while a lower one is uncommitted. Readers therefore
+resume strictly after the last consumed cursor, including when prediction
+IDs were allocated in a different order. Event UUIDs deduplicate the browser
+feed. The feed replays committed records on reconnect and uses no broker
+consumer per client. There is no assessment dual-write to Kafka.
+
+Each connection scans batches of at most 64 cursor positions and waits
+500 ms at the tail. Database sessions close before response writes. The API
+admits up to 32 telemetry streams per process, limits each write to 10 seconds,
+and recycles streams after five minutes. The browser batches updates every
+150 ms and keeps up to 60 assessments. Pause holds the displayed feed and
+resume replays from its last applied cursor. The dashboard coalesces
+stream-triggered refresh requests with a two-second minimum interval between
+those batches. Its existing 30-second polling, cancellation, active filters,
+pagination, and investigation selection continue to work when the stream is
+unavailable.
+
+### Operational metrics and dead letters
+
+`GET /api/v1/telemetry/metrics` combines the durable assessment count and last
+assessment timestamp with reported worker data. The worker exports a
+checkpoint about every five seconds on a separate thread and connection pool.
+The reporter holds one replaceable snapshot. Cumulative counter deltas are
+applied once per worker checkpoint and survive worker restarts. They describe
+reported processing attempts, including deliveries across all configured
+workers and groups. A crash or storage outage can lose unsent measurements.
+The PostgreSQL assessment count comes from the durable stream projection and
+remains independent of those reports.
+
+| Metric | Definition |
+| --- | --- |
+| Received, committed | Deliveries polled and Kafka offsets acknowledged, respectively |
+| Processed, duplicates, invalid | New durable assessments, recognized redeliveries, and validation rejections |
+| Retried events, retry attempts | Deliveries that retried and individual database retry attempts |
+| DLQ acknowledgements | Confirmed broker publishes to the dead-letter topic |
+| Throughput | Reported counter increments per 10-second bucket, divided by 10. Current partial buckets are also normalized to 10 seconds. |
+| Latency | Sample-weighted mean for inference, database persistence, and producer observation to database commit. Clock skew can affect observation age. |
+| Backlog | Highest reported lag for one worker's assigned partitions. This gauge can underrepresent the whole group. |
+| Worker and broker health | Fresh worker heartbeat and a timestamped worker-side broker metadata probe. Samples older than 20 seconds are stale. |
+
+The rolling view has 30 ten-second buckets and reads at most 3,600 samples
+and 64 recent worker checkpoints. A partial query is flagged. Missing series
+values appear as gaps. A stopped worker or a stale sample is distinct from
+zero readings. Broker status is unknown until a worker has probed it. Existing
+committed history and normal FleetMind routes work with the broker turned off.
+
+`GET /api/v1/telemetry/dead-letters` reads recent redacted reports. The worker
+copies up to its last 128 acknowledged rejections through the background
+reporter. The read-only mirror can miss entries during a burst, crash, or
+prolonged storage outage. Kafka is the primary DLQ record. Reports contain
+category, rejection time, event ID if known, and topic/partition/offset only.
+Samples and mirrored dead letters are pruned in bounded batches after 24 hours.
+Per-process checkpoints and cumulative totals are retained. This interface
+offers inspection only.
+
+### Reproduce the live workflow
+
+Use the disposable database and broker procedure from Milestone 10A. Apply
+revision 0006 on the disposable database, register two test assets, and run a
+production Next.js build with `FLEETMIND_API_URL` pointing at that FastAPI
+instance. In separate terminals open the feed and submit a finite workload.
+
+```powershell
+curl.exe --no-buffer http://127.0.0.1:8000/api/v1/telemetry/stream
+python -m scripts.produce_telemetry --asset press-01 --asset press-02 --rate 50 --count 100
+```
+
+The browser latency check correlates a timestamp immediately after each
+worker transaction returns with that event UUID's first insertion into the
+DOM. This includes stream polling, proxy forwarding, browser batching, and
+rendering. Use the Developer Tools protocol to measure the production page at
+desktop and 320 px, block the stream request to exercise polling fallback,
+and compare the metrics totals with the known valid and rejected deliveries.
+
+The [live validation report](reports/telemetry_m10b.json) records a Windows
+Docker Desktop run with Redpanda 25.3.11, PostgreSQL, the frozen XGBoost model,
+production Next.js, and headless Microsoft Edge.
+
+| Scenario | Measured result |
+| --- | --- |
+| 100 events offered at 50/s | 100 commit-to-DOM samples. p50 462 ms, p95 688 ms, p99 714 ms. Feed retained 60 rows. |
+| Pause and resume | Three missed rows replayed in 407 ms from resume. |
+| Blocked stream and automatic reconnect | Two missed rows replayed without duplicates in 2.72 s after unblocking. |
+| Dashboard burst | A 20-event burst triggered two summary refreshes. |
+| Dashboard with stream blocked | The next polling refresh arrived in 29.99 s. |
+
+The browser spent 1.17 s on renderer tasks during the 10.19 s burst and
+checkpoint observation window. It recorded two long tasks of 289 ms and
+330 ms, and used 14.4 MiB of JavaScript heap at the sample point. API
+working-set samples were 271 MiB before and 274 MiB after the burst. The final
+counters matched 127 committed assessments, 128 acknowledged offsets, and one
+redacted dead-letter acknowledgement. The manual prediction was preserved.
+The browser checks covered filters, the SHAP investigation drawer, and the
+320 px layout. These figures are local development measurements.
+
+With Redpanda stopped, a direct FastAPI check held eight idle SSE streams
+open, received a heartbeat, and replayed three stored records using
+`Last-Event-ID`. Over 10.36 s, 20 metrics requests took 41.56 ms median
+and 59.14 ms p95 round trip. The service used 1.52 CPU seconds and its
+working set moved from 271.0 to 272.9 MiB during this combined workload.
+
+Telemetry views require a FleetMind session. Keep development database and broker
+listeners on loopback. Follow the [deployment requirements](docs/security.md)
+for service credentials, TLS, and production network boundaries. Source labels
+remain caller-declared, and an uncalibrated failure score requires human review.

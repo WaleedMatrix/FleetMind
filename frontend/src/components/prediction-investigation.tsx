@@ -1,8 +1,11 @@
 "use client";
 
+import { useEngineering } from "@/components/auth-shell";
+
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import Link from "next/link";
 import { copilotHref } from "@/lib/copilot";
+import type { AssessmentEvent } from "@/lib/telemetry";
 import { BrainCircuit, ClipboardCheck, Gauge, Layers, ScanLine, Thermometer, Timer, Wrench, X } from "lucide-react";
 import {
   ALERT_INFO, READING_SOURCES, predictionLabel, scoreText, timestampLabel, type AlertLevel, type Prediction,
@@ -102,11 +105,16 @@ function SensorSnapshot({ record }: { record: Prediction }) {
 }
 
 type PredictionInvestigationProps = {
-  selection: { record: Prediction; trigger: HTMLButtonElement | null } | null;
+  selection: {
+    record: Prediction;
+    trigger: HTMLButtonElement | null;
+    telemetry?: Pick<AssessmentEvent, "event_id" | "observed_at" | "ingested_at" | "assessed_at">;
+  } | null;
   focusFallback: RefObject<HTMLButtonElement | null>;
 };
 
 export function PredictionInvestigation({ selection, focusFallback }: PredictionInvestigationProps) {
+  const canEngineer = useEngineering();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -125,7 +133,7 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
 
   if (!selection) return null;
 
-  const { record, trigger } = selection;
+  const { record, trigger, telemetry } = selection;
   const guidance = GUIDANCE[record.alert_level];
 
   return (
@@ -146,8 +154,8 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
         <div>
           <div className="alert-center-drawer-label"><ScanLine size={15} aria-hidden="true" /> Prediction investigation</div>
           <h2 id={titleId}>Assessment {predictionLabel(record.prediction_id)}</h2>
-          <Link href={copilotHref(record.asset_id, record.prediction_id)} className="copilot-link"
-            onNavigate={() => dialogRef.current?.close()}>Investigate with Copilot</Link>
+          {canEngineer && <Link href={copilotHref(record.asset_id, record.prediction_id)} className="copilot-link"
+            onNavigate={() => dialogRef.current?.close()}>Investigate with Copilot</Link>}
         </div>
         <button
           ref={closeRef}
@@ -162,16 +170,22 @@ export function PredictionInvestigation({ selection, focusFallback }: Prediction
         <AlertBadge level={record.alert_level} />
         <dl className="alert-center-metadata">
           <div>
-            <dt>Recorded at</dt>
-            <dd><time dateTime={record.created_at}>{timestampLabel(record.created_at, true)}</time></dd>
+            <dt>{telemetry ? "Assessed at" : "Recorded at"}</dt>
+            <dd><time dateTime={telemetry?.assessed_at ?? record.created_at}>{timestampLabel(telemetry?.assessed_at ?? record.created_at, true)}</time></dd>
           </div>
+          {telemetry && <>
+            <div><dt>Source event</dt><dd className="telemetry-event-id">{telemetry.event_id}</dd></div>
+            <div><dt>Observed at</dt><dd><time dateTime={telemetry.observed_at}>{timestampLabel(telemetry.observed_at, true)}</time></dd></div>
+            <div><dt>Ingested at</dt><dd><time dateTime={telemetry.ingested_at}>{timestampLabel(telemetry.ingested_at, true)}</time></dd></div>
+          </>}
           <div>
             <dt>Model version</dt>
             <dd>{record.model_version}</dd>
           </div>
           <div>
             <dt>Asset</dt>
-            <dd>{record.asset_id ? <Link className="asset-inline-link" href={`/${assetPath(record.asset_id)}`}>{record.asset_id}</Link> : "Unassigned"}</dd>
+            <dd>{record.asset_id ? <Link className="asset-inline-link" href={`/${assetPath(record.asset_id)}`}
+              onNavigate={() => dialogRef.current?.close()}>{record.asset_id}</Link> : "Unassigned"}</dd>
           </div>
           <div>
             <dt>Reading source</dt>

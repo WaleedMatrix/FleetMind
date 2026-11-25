@@ -1,4 +1,4 @@
-import { assertFleetMindResponse, fleetMindRequest } from "./api";
+import { announceSessionExpiry, assertFleetMindResponse, browserHeaders, fleetMindRequest } from "./api";
 
 export type Conversation = {
   id: string;
@@ -67,6 +67,7 @@ export type StreamEvent = { request_id: string } & (
   | { type: "evidence"; count: number }
   | { type: "final"; message: Message }
   | { type: "cancelled" | "error"; detail: string }
+  | { type: "session_expired"; detail: string }
   | { type: "clarification" | "completed" }
 );
 
@@ -98,7 +99,7 @@ export async function streamReply(
 ) {
   const response = await fetch(`/api/fleetmind/${CONVERSATIONS}/${conversationId}/messages/stream`, {
     ...writeJson("POST", { request_id: requestId, question }),
-    headers: { "Content-Type": "application/json", Accept: "text/event-stream" }, signal,
+    headers: browserHeaders({ method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream" } }), signal,
   });
   await assertFleetMindResponse(response);
   if (!response.body || !response.headers.get("content-type")?.startsWith("text/event-stream")) {
@@ -119,6 +120,10 @@ export async function streamReply(
         const data = frame.split("\n").find((line) => line.startsWith("data: "));
         if (data) {
           const event = JSON.parse(data.slice(6)) as StreamEvent;
+          if (event.request_id === requestId && !signal.aborted && event.type === "session_expired") {
+            announceSessionExpiry();
+            return;
+          }
           if (event.request_id === requestId && !signal.aborted) {
             onEvent(event);
             finished ||= event.type === "completed" || event.type === "cancelled" || event.type === "error";

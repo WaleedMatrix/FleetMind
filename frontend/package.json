@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:proxy": "node --test tests/security-proxy.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.77.0",

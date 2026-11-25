@@ -338,6 +338,7 @@
 .copilot-source-fields dd { margin: 5px 0 0; font-weight: 700; }
 .copilot-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .copilot-entry { white-space: nowrap; align-self: flex-start; }
+.dashboard-copilot-link { white-space: nowrap; }
 @media (max-width: 740px) {
   .copilot-grid { grid-template-columns: minmax(0, 1fr); }
   .copilot-sidebar { position: static; padding: 10px; }
@@ -348,6 +349,8 @@
   .copilot-thread { min-height: 400px; }
 }
 @media (max-width: 440px) {
+  .dashboard-copilot-link + .topbar-tag { display: none; }
+  .dashboard-copilot-link ~ .avatar { flex-shrink: 0; }
   .copilot-topbar nav { justify-content: flex-end; gap: 9px; }
   .copilot-topbar nav a { font-size: 11px; }
   .copilot-topbar nav a:first-child span { max-width: 57px; }
