@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Activity, AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Bell, BrainCircuit,
@@ -15,9 +15,12 @@ import {
 } from "recharts";
 import { AlertBadge } from "@/components/alert-badge";
 import { AssetPicker } from "@/components/asset-picker";
+import { useEngineering } from "@/components/auth-shell";
 import { PredictionHistory } from "@/components/prediction-history";
 import { fleetMindRequest } from "@/lib/api";
 import type { Asset } from "@/lib/assets";
+import { PORTFOLIO } from "@/lib/profile";
+import { followTelemetry } from "@/lib/telemetry";
 import {
   PREDICTIONS_PER_PAGE, scoreText,
   type AlertFilter, type InferenceResult, type Prediction, type PredictionPage, type SensorReading,
@@ -56,12 +59,7 @@ const INITIAL_READING: SensorReading = {
 };
 
 async function getJSON<T>(path: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch(`/api/fleetmind/${path}`, { cache: "no-store", signal });
-  if (!response.ok) {
-    const detail = await response.json().catch(() => ({})) as {detail?: string};
-    throw new Error(detail.detail ?? `API request failed (${response.status})`);
-  }
-  return response.json() as Promise<T>;
+  return fleetMindRequest<T>(path, { signal });
 }
 
 function utcLabel(timestamp: string, interval: Interval) {
@@ -116,6 +114,7 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 export default function Home() {
+  const canEngineer = useEngineering();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [trends, setTrends] = useState<Trends | null>(null);
   const [history, setHistory] = useState<PredictionPage | null>(null);
@@ -135,10 +134,22 @@ export default function Home() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const refreshDashboard = useRef<((replaceInFlight?: boolean) => Promise<void>) | null>(null);
+  const refreshFromTelemetry = useRef<(() => void) | null>(null);
 
   // Invalidate the previous query as soon as the new selection commits.
   useLayoutEffect(() => {
     let activeRequest: AbortController | null = null;
+    let telemetryTimer = 0;
+    let telemetryPending = false;
+    let lastStarted = 0;
+    function scheduleTelemetryRefresh() {
+      telemetryPending = true;
+      if (activeRequest || telemetryTimer) return;
+      telemetryTimer = window.setTimeout(() => {
+        telemetryTimer = 0;
+        void load();
+      }, Math.max(250, 2_000 - (performance.now() - lastStarted)));
+    }
     // Fetch one extra record so a full final page cannot advertise another page.
     const params = new URLSearchParams({ limit: String(PREDICTIONS_PER_PAGE + 1), offset: String(offset) });
     if (filter !== "all") params.set("alert_level", filter);
@@ -146,6 +157,10 @@ export default function Home() {
     async function load(replaceInFlight = false) {
       if (activeRequest && !replaceInFlight) return;
       activeRequest?.abort();
+      window.clearTimeout(telemetryTimer);
+      telemetryTimer = 0;
+      telemetryPending = false;
+      lastStarted = performance.now();
 
       const controller = new AbortController();
       const { signal } = controller;
@@ -181,22 +196,30 @@ export default function Home() {
           activeRequest = null;
           setLoading(false);
           setRefreshing(false);
+          if (telemetryPending) scheduleTelemetryRefresh();
         }
       }
     }
 
     refreshDashboard.current = load;
+    refreshFromTelemetry.current = scheduleTelemetryRefresh;
     const initialTimer = window.setTimeout(() => { void load(); }, 0);
     const refreshTimer = window.setInterval(() => { void load(); }, 30_000);
 
     return () => {
       refreshDashboard.current = null;
+      refreshFromTelemetry.current = null;
       activeRequest?.abort();
       activeRequest = null;
       window.clearTimeout(initialTimer);
       window.clearInterval(refreshTimer);
+      window.clearTimeout(telemetryTimer);
     };
   }, [interval, filter, offset]);
+
+  useEffect(() => PORTFOLIO ? undefined : followTelemetry({
+    onBatch: (items) => { if (items.length) refreshFromTelemetry.current?.(); },
+  }), []);
 
   const points = useMemo(() => (trends?.points ?? []).map((point) => ({
     ...point,
@@ -255,13 +278,15 @@ export default function Home() {
           <a className="nav-link" href="#trends"><Activity size={18}/> Analytics</a>
           <a className="nav-link" href="#activity"><Database size={18} aria-hidden="true"/> Alert Intelligence</a>
           <Link className="nav-link" href="/assets"><Factory size={18} aria-hidden="true" /> Assets</Link>
+          <Link className="nav-link" href="/telemetry"><Radio size={18} aria-hidden="true" /> Telemetry</Link>
           <Link className="nav-link" href="/model-intelligence"><BrainCircuit size={18} aria-hidden="true" /> Model Intelligence</Link>
-          <a className="nav-link" href="#evaluate"><SlidersHorizontal size={18}/> Inference lab</a>
+          {(canEngineer || PORTFOLIO) && <Link className="nav-link" href="/copilot"><Sparkles size={18} aria-hidden="true" /> Copilot</Link>}
+          {canEngineer && <a className="nav-link" href="#evaluate"><SlidersHorizontal size={18}/> Inference lab</a>}
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-system">
             <div className="system-header"><span className="system-icon"><Radio size={16}/></span><span>System status</span></div>
-            <div className="system-state"><span className={`live-dot ${connected ? "" : "offline-dot"}`} />{connected ? "Model serving" : "Connection unavailable"}</div>
+            <div className="system-state"><span className={`live-dot ${connected ? "" : "offline-dot"}`} />{connected ? (PORTFOLIO ? "Snapshot ready" : "Model serving") : "Connection unavailable"}</div>
             <p>{connected ? health?.model_version : "Start FastAPI to connect"}</p>
           </div>
             <div className="sidebar-footer"><CircleDot size={13}/> Maintenance workspace</div>
@@ -271,26 +296,32 @@ export default function Home() {
       <main className="main-content" id="overview">
         <header className="topbar">
           <div className="breadcrumb">Workspace <span>/</span> Operations <span>/</span> <strong>Command center</strong></div>
-          <div className="topbar-right"><span className="topbar-tag"><span className="live-dot"/> LOCAL INSTANCE</span><div className="avatar">FM</div></div>
+          <div className="topbar-right">
+            {canEngineer && <Link className="copilot-button copilot-new dashboard-copilot-link" href="/copilot">
+              <Sparkles size={16} aria-hidden="true" /> Copilot
+            </Link>}
+            <span className="topbar-tag"><span className="live-dot"/> {PORTFOLIO ? "PORTFOLIO" : "LOCAL INSTANCE"}</span>
+            <div className="avatar">FM</div>
+          </div>
         </header>
 
         <div className="content-container">
           <div className="page-heading">
             <div><div className="eyebrow"><span className="eyebrow-rule"/> COMMAND CENTER <span className="eyebrow-secondary">/ OVERVIEW</span></div><h1>Operational <span>intelligence.</span></h1><p>Your machine assessment pipeline, monitored in one place.</p></div>
-            <div className="heading-controls"><div className={`connection-pill ${connected ? "connected" : "disconnected"}`}><span className="live-dot"/>{connected ? "API connected" : "API disconnected"}</div><button className="refresh-button" onClick={() => { void refreshDashboard.current?.(); }} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw size={16} className={refreshing ? "spinning" : ""}/><span>Refresh</span></button></div>
+            <div className="heading-controls"><div className={`connection-pill ${connected ? "connected" : "disconnected"}`}><span className="live-dot"/>{connected ? (PORTFOLIO ? "Recorded assessments" : "API connected") : (PORTFOLIO ? "Snapshot unavailable" : "API disconnected")}</div><button className="refresh-button" onClick={() => { void refreshDashboard.current?.(); }} disabled={refreshing} aria-label="Refresh dashboard"><RefreshCw size={16} className={refreshing ? "spinning" : ""}/><span>Refresh</span></button></div>
           </div>
 
           {error && <div className="error-banner" role="alert"><AlertTriangle size={18}/><div><strong>Unable to update dashboard</strong><p>{error}. Confirm FastAPI is running on port 8000.</p></div><button onClick={() => { void refreshDashboard.current?.(); }}>Retry <ArrowRight size={14}/></button></div>}
 
           <section className="hero-panel" aria-label="FleetMind pipeline overview">
-            <div className="hero-copy"><div className="hero-kicker"><Sparkles size={14}/> MODEL OPERATIONS / LIVE OVERVIEW</div><h2>Every signal.<br/><span>One clear decision.</span></h2><p>Turn raw sensor readings into prioritized maintenance assessments — and keep an auditable record of every prediction.</p><a href="#evaluate" className="hero-cta">Run an assessment <ArrowUpRight size={17}/></a></div>
-            <div className="hero-art" aria-hidden="true"><div className="halo halo-one"/><div className="halo halo-two"/><div className="halo halo-three"/><div className="halo-center"><Activity size={49} strokeWidth={1.4}/></div><div className="signal-node node-one"/><div className="signal-node node-two"/><div className="signal-node node-three"/><div className="hero-art-label label-top">SENSOR INTAKE <span>● LIVE</span></div><div className="hero-art-label label-bottom">MODEL / XGBOOST V1</div></div>
+            <div className="hero-copy"><div className="hero-kicker"><Sparkles size={14}/> {PORTFOLIO ? "MODEL OPERATIONS / RECORDED OVERVIEW" : "MODEL OPERATIONS / LIVE OVERVIEW"}</div><h2>Every signal.<br/><span>One clear decision.</span></h2><p>Turn raw sensor readings into prioritized maintenance assessments — and keep an auditable record of every prediction.</p>{PORTFOLIO ? <Link href="/showcase" className="hero-cta">Explore the architecture <ArrowUpRight size={17}/></Link> : canEngineer && <a href="#evaluate" className="hero-cta">Run an assessment <ArrowUpRight size={17}/></a>}</div>
+            <div className="hero-art" aria-hidden="true"><div className="halo halo-one"/><div className="halo halo-two"/><div className="halo halo-three"/><div className="halo-center"><Activity size={49} strokeWidth={1.4}/></div><div className="signal-node node-one"/><div className="signal-node node-two"/><div className="signal-node node-three"/><div className="hero-art-label label-top">SENSOR INTAKE <span>{PORTFOLIO ? "● SIMULATED" : "● LIVE"}</span></div><div className="hero-art-label label-bottom">MODEL / XGBOOST V1</div></div>
           </section>
 
           <section className="kpi-section" aria-label="Key metrics">
-            <div className="section-head"><div><span className="section-overline">01 / SIGNAL HEALTH</span><h2>System snapshot</h2></div><span className="section-note"><span className="small-live-dot"/> {lastSync ? `Updated ${lastSync.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}` : "Awaiting first sync"}</span></div>
+            <div className="section-head"><div><span className="section-overline">01 / SIGNAL HEALTH</span><h2>System snapshot</h2></div><span className="section-note"><span className="small-live-dot"/> {PORTFOLIO ? "Recorded simulator run" : lastSync ? `Updated ${lastSync.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}` : "Awaiting first sync"}</span></div>
             <div className="stat-grid">
-              <StatCard label="Total assessments" value={loading && !summary ? "—" : (summary?.total_predictions ?? 0).toLocaleString()} helper="Predictions stored" icon={<ScanLine size={20}/>} tone="blue"/>
+              <StatCard label="Total assessments" value={loading && !summary ? "—" : (summary?.total_predictions ?? 0).toLocaleString()} helper={PORTFOLIO ? "Simulated readings scored" : "Predictions stored"} icon={<ScanLine size={20}/>} tone="blue"/>
               <StatCard label="High-priority alerts" value={loading && !summary ? "—" : String(summary?.high_priority_alerts ?? 0)} helper={highShare} icon={<AlertTriangle size={20}/>} tone="red"/>
               <StatCard label="Review queue" value={loading && !summary ? "—" : String(summary?.review_alerts ?? 0)} helper="Assessments needing review" icon={<Bell size={20}/>} tone="amber"/>
               <StatCard label="Mean failure score" value={loading && !summary ? "—" : scoreText(summary?.average_failure_score ?? 0)} helper="Raw model score · uncalibrated" icon={<Gauge size={20}/>} tone="mint"/>
@@ -333,7 +364,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="inference-section" id="evaluate"><div className="section-head"><div><span className="section-overline">03 / INTERACTIVE INFERENCE</span><h2>Machine assessment lab</h2></div><span className="section-note"><Zap size={14}/> Runs against your saved XGBoost model</span></div>
+          {canEngineer && <section className="inference-section" id="evaluate"><div className="section-head"><div><span className="section-overline">03 / INTERACTIVE INFERENCE</span><h2>Machine assessment lab</h2></div><span className="section-note"><Zap size={14}/> Runs against your saved XGBoost model</span></div>
             <div className="inference-grid"><div className="panel inference-panel"><div className="inference-intro"><div className="inference-icon"><Thermometer size={20}/></div><div><h3>Submit a sensor reading</h3><p>Validate the live inference pipeline and persist the result to PostgreSQL.</p></div></div>
                 <form onSubmit={(event) => { void runInference(event); }}>
                   <fieldset className="asset-inference-fields" disabled={submitting}>
@@ -387,7 +418,7 @@ export default function Home() {
               </div>
               <div className="panel knowledge-panel"><div className="knowledge-top"><div className="knowledge-icon"><ShieldCheck size={26}/></div><span>MODEL CARD / V1</span></div><h3>Know what the score means.</h3><p>FleetMind classifies the current reading against patterns learned from the synthetic AI4I 2020 dataset. The score is <strong>not</strong> a calibrated probability or a forecast of when a machine will fail.</p><div className="threshold-list"><div><i className="thresh-green"/><span>No alert</span><strong>&lt; 0.30</strong></div><div><i className="thresh-amber"/><span>Review</span><strong>0.30–0.60</strong></div><div><i className="thresh-red"/><span>High priority</span><strong>≥ 0.60</strong></div></div><div className="knowledge-footer"><ShieldCheck size={16}/> Human review remains essential for maintenance decisions.</div></div>
             </div>
-          </section>
+          </section>}
           <footer className="footer"><span>© 2026 FleetMind · Predictive Maintenance Intelligence</span><span>LOCAL DEVELOPMENT <i/> MODEL VERSION: XGBOOST_V1</span></footer>
         </div>
       </main>

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: fleetmind-portfolio-inference
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.portfolio
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: "off"

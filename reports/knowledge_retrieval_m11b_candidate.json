@@ -1,0 +1,961 @@
+{
+  "suite": "regression",
+  "evaluation_sha256": "7cb647ea7bbd7471b5f4f63cf26c2a8619bb3c33f38f8c7e5598cf603d115737",
+  "queries": 32,
+  "answerable": 28,
+  "out_of_domain": 4,
+  "top_k_chunks": 5,
+  "rrf_constant": 60,
+  "embedding": {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "c9745ed1d9f207416be6d2e6f8de32d1f16199bf",
+    "dimensions": 384
+  },
+  "encoder_warmup_ms": 25321.979,
+  "encoder_dependencies": {
+    "sentence-transformers": "5.6.0",
+    "transformers": "5.17.0",
+    "torch": "2.9.1+cpu"
+  },
+  "modes": {
+    "semantic": {
+      "recall": 0.988095,
+      "reciprocal_rank": 0.928571,
+      "ndcg": 0.933875,
+      "answerable_with_relevant_rank_one": 24,
+      "answerable_misses": [],
+      "out_of_domain_with_results": [
+        "o01",
+        "o02",
+        "o03",
+        "o04"
+      ],
+      "latency_ms": {
+        "elapsed_ms": {
+          "p50": 35.34,
+          "p95": 52.644
+        },
+        "embedding_ms": {
+          "p50": 23.995,
+          "p95": 34.751
+        },
+        "semantic_sql_ms": {
+          "p50": 7.192,
+          "p95": 12.628
+        },
+        "keyword_sql_ms": {
+          "p50": 0.0,
+          "p95": 0.0
+        }
+      },
+      "per_query": [
+        {
+          "id": "m01",
+          "top_documents": [
+            "scores-and-alerts",
+            "held-out-evaluation",
+            "scores-and-alerts",
+            "shap-explanations",
+            "training-data"
+          ]
+        },
+        {
+          "id": "m02",
+          "top_documents": [
+            "reading-provenance",
+            "training-data",
+            "scores-and-alerts",
+            "maintenance-review",
+            "training-data"
+          ]
+        },
+        {
+          "id": "m03",
+          "top_documents": [
+            "held-out-evaluation",
+            "held-out-evaluation",
+            "shap-explanations",
+            "sensor-reference",
+            "training-data"
+          ]
+        },
+        {
+          "id": "m04",
+          "top_documents": [
+            "held-out-evaluation",
+            "training-data",
+            "held-out-evaluation",
+            "scores-and-alerts",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "m05",
+          "top_documents": [
+            "scores-and-alerts",
+            "maintenance-review",
+            "held-out-evaluation",
+            "scores-and-alerts",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "s01",
+          "top_documents": [
+            "sensor-reference",
+            "sensor-reference",
+            "sensor-reference",
+            "shap-explanations",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "s02",
+          "top_documents": [
+            "sensor-reference",
+            "sensor-reference",
+            "asset-monitoring",
+            "sensor-reference",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "s03",
+          "top_documents": [
+            "sensor-reference",
+            "maintenance-review",
+            "training-data",
+            "maintenance-review",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "s04",
+          "top_documents": [
+            "sensor-reference",
+            "sensor-reference",
+            "reading-provenance",
+            "shap-explanations",
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "s05",
+          "top_documents": [
+            "sensor-reference",
+            "shap-explanations",
+            "shap-explanations",
+            "scores-and-alerts",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "a01",
+          "top_documents": [
+            "asset-monitoring",
+            "asset-monitoring",
+            "reading-provenance",
+            "training-data",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "a02",
+          "top_documents": [
+            "asset-monitoring",
+            "sensor-reference",
+            "reading-provenance",
+            "asset-monitoring",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "a03",
+          "top_documents": [
+            "asset-monitoring",
+            "sensor-reference",
+            "asset-monitoring",
+            "reading-provenance",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "a04",
+          "top_documents": [
+            "reading-provenance",
+            "maintenance-review",
+            "asset-monitoring",
+            "reading-provenance",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "a05",
+          "top_documents": [
+            "reading-provenance",
+            "reading-provenance",
+            "training-data",
+            "asset-monitoring",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "r01",
+          "top_documents": [
+            "maintenance-review",
+            "scores-and-alerts",
+            "maintenance-review",
+            "maintenance-review",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "r02",
+          "top_documents": [
+            "maintenance-review",
+            "maintenance-review",
+            "scores-and-alerts",
+            "asset-monitoring",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "r03",
+          "top_documents": [
+            "training-data",
+            "maintenance-review",
+            "maintenance-review",
+            "scores-and-alerts",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "r04",
+          "top_documents": [
+            "maintenance-review",
+            "maintenance-review",
+            "maintenance-review",
+            "training-data",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "x01",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "scores-and-alerts",
+            "scores-and-alerts",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "x02",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "scores-and-alerts",
+            "held-out-evaluation",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "x03",
+          "top_documents": [
+            "sensor-reference",
+            "shap-explanations",
+            "asset-monitoring",
+            "shap-explanations",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "x04",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "reading-provenance",
+            "asset-monitoring",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "x05",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "reading-provenance",
+            "maintenance-review",
+            "training-data"
+          ]
+        },
+        {
+          "id": "b01",
+          "top_documents": [
+            "scores-and-alerts",
+            "shap-explanations",
+            "held-out-evaluation",
+            "sensor-reference",
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "b02",
+          "top_documents": [
+            "sensor-reference",
+            "shap-explanations",
+            "shap-explanations",
+            "held-out-evaluation",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "b03",
+          "top_documents": [
+            "maintenance-review",
+            "scores-and-alerts",
+            "training-data",
+            "reading-provenance",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "b04",
+          "top_documents": [
+            "asset-monitoring",
+            "maintenance-review",
+            "scores-and-alerts",
+            "asset-monitoring",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "o01",
+          "top_documents": [
+            "shap-explanations",
+            "training-data",
+            "sensor-reference",
+            "asset-monitoring",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "o02",
+          "top_documents": [
+            "shap-explanations",
+            "reading-provenance",
+            "scores-and-alerts",
+            "maintenance-review",
+            "training-data"
+          ]
+        },
+        {
+          "id": "o03",
+          "top_documents": [
+            "sensor-reference",
+            "asset-monitoring",
+            "scores-and-alerts",
+            "asset-monitoring",
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "o04",
+          "top_documents": [
+            "asset-monitoring",
+            "training-data",
+            "maintenance-review",
+            "held-out-evaluation",
+            "training-data"
+          ]
+        }
+      ]
+    },
+    "keyword": {
+      "recall": 0.142857,
+      "reciprocal_rank": 0.142857,
+      "ndcg": 0.142857,
+      "answerable_with_relevant_rank_one": 4,
+      "answerable_misses": [
+        "m01",
+        "m04",
+        "m05",
+        "s01",
+        "s02",
+        "s04",
+        "s05",
+        "a01",
+        "a02",
+        "a03",
+        "a04",
+        "a05",
+        "r01",
+        "r02",
+        "r03",
+        "x01",
+        "x02",
+        "x03",
+        "x04",
+        "x05",
+        "b01",
+        "b02",
+        "b03",
+        "b04"
+      ],
+      "out_of_domain_with_results": [],
+      "latency_ms": {
+        "elapsed_ms": {
+          "p50": 7.003,
+          "p95": 11.708
+        },
+        "embedding_ms": {
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "semantic_sql_ms": {
+          "p50": 0.0,
+          "p95": 0.0
+        },
+        "keyword_sql_ms": {
+          "p50": 3.847,
+          "p95": 8.687
+        }
+      },
+      "per_query": [
+        {
+          "id": "m01",
+          "top_documents": []
+        },
+        {
+          "id": "m02",
+          "top_documents": [
+            "training-data"
+          ]
+        },
+        {
+          "id": "m03",
+          "top_documents": [
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "m04",
+          "top_documents": []
+        },
+        {
+          "id": "m05",
+          "top_documents": []
+        },
+        {
+          "id": "s01",
+          "top_documents": []
+        },
+        {
+          "id": "s02",
+          "top_documents": []
+        },
+        {
+          "id": "s03",
+          "top_documents": [
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "s04",
+          "top_documents": []
+        },
+        {
+          "id": "s05",
+          "top_documents": []
+        },
+        {
+          "id": "a01",
+          "top_documents": []
+        },
+        {
+          "id": "a02",
+          "top_documents": []
+        },
+        {
+          "id": "a03",
+          "top_documents": []
+        },
+        {
+          "id": "a04",
+          "top_documents": []
+        },
+        {
+          "id": "a05",
+          "top_documents": []
+        },
+        {
+          "id": "r01",
+          "top_documents": []
+        },
+        {
+          "id": "r02",
+          "top_documents": []
+        },
+        {
+          "id": "r03",
+          "top_documents": []
+        },
+        {
+          "id": "r04",
+          "top_documents": [
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "x01",
+          "top_documents": []
+        },
+        {
+          "id": "x02",
+          "top_documents": []
+        },
+        {
+          "id": "x03",
+          "top_documents": []
+        },
+        {
+          "id": "x04",
+          "top_documents": []
+        },
+        {
+          "id": "x05",
+          "top_documents": []
+        },
+        {
+          "id": "b01",
+          "top_documents": []
+        },
+        {
+          "id": "b02",
+          "top_documents": []
+        },
+        {
+          "id": "b03",
+          "top_documents": []
+        },
+        {
+          "id": "b04",
+          "top_documents": []
+        },
+        {
+          "id": "o01",
+          "top_documents": []
+        },
+        {
+          "id": "o02",
+          "top_documents": []
+        },
+        {
+          "id": "o03",
+          "top_documents": []
+        },
+        {
+          "id": "o04",
+          "top_documents": []
+        }
+      ]
+    },
+    "hybrid": {
+      "recall": 0.988095,
+      "reciprocal_rank": 0.946429,
+      "ndcg": 0.947057,
+      "answerable_with_relevant_rank_one": 25,
+      "answerable_misses": [],
+      "out_of_domain_with_results": [
+        "o01",
+        "o02",
+        "o03",
+        "o04"
+      ],
+      "latency_ms": {
+        "elapsed_ms": {
+          "p50": 39.645,
+          "p95": 48.626
+        },
+        "embedding_ms": {
+          "p50": 24.178,
+          "p95": 31.609
+        },
+        "semantic_sql_ms": {
+          "p50": 6.838,
+          "p95": 8.428
+        },
+        "keyword_sql_ms": {
+          "p50": 4.421,
+          "p95": 6.25
+        }
+      },
+      "per_query": [
+        {
+          "id": "m01",
+          "top_documents": [
+            "scores-and-alerts",
+            "held-out-evaluation",
+            "scores-and-alerts",
+            "shap-explanations",
+            "training-data"
+          ]
+        },
+        {
+          "id": "m02",
+          "top_documents": [
+            "training-data",
+            "reading-provenance",
+            "scores-and-alerts",
+            "maintenance-review",
+            "training-data"
+          ]
+        },
+        {
+          "id": "m03",
+          "top_documents": [
+            "held-out-evaluation",
+            "held-out-evaluation",
+            "shap-explanations",
+            "sensor-reference",
+            "training-data"
+          ]
+        },
+        {
+          "id": "m04",
+          "top_documents": [
+            "held-out-evaluation",
+            "training-data",
+            "held-out-evaluation",
+            "scores-and-alerts",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "m05",
+          "top_documents": [
+            "scores-and-alerts",
+            "maintenance-review",
+            "held-out-evaluation",
+            "scores-and-alerts",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "s01",
+          "top_documents": [
+            "sensor-reference",
+            "sensor-reference",
+            "sensor-reference",
+            "shap-explanations",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "s02",
+          "top_documents": [
+            "sensor-reference",
+            "sensor-reference",
+            "asset-monitoring",
+            "sensor-reference",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "s03",
+          "top_documents": [
+            "sensor-reference",
+            "maintenance-review",
+            "training-data",
+            "maintenance-review",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "s04",
+          "top_documents": [
+            "sensor-reference",
+            "sensor-reference",
+            "reading-provenance",
+            "shap-explanations",
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "s05",
+          "top_documents": [
+            "sensor-reference",
+            "shap-explanations",
+            "shap-explanations",
+            "scores-and-alerts",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "a01",
+          "top_documents": [
+            "asset-monitoring",
+            "asset-monitoring",
+            "reading-provenance",
+            "training-data",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "a02",
+          "top_documents": [
+            "asset-monitoring",
+            "sensor-reference",
+            "reading-provenance",
+            "asset-monitoring",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "a03",
+          "top_documents": [
+            "asset-monitoring",
+            "sensor-reference",
+            "asset-monitoring",
+            "reading-provenance",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "a04",
+          "top_documents": [
+            "reading-provenance",
+            "maintenance-review",
+            "asset-monitoring",
+            "reading-provenance",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "a05",
+          "top_documents": [
+            "reading-provenance",
+            "reading-provenance",
+            "training-data",
+            "asset-monitoring",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "r01",
+          "top_documents": [
+            "maintenance-review",
+            "scores-and-alerts",
+            "maintenance-review",
+            "maintenance-review",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "r02",
+          "top_documents": [
+            "maintenance-review",
+            "maintenance-review",
+            "scores-and-alerts",
+            "asset-monitoring",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "r03",
+          "top_documents": [
+            "training-data",
+            "maintenance-review",
+            "maintenance-review",
+            "scores-and-alerts",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "r04",
+          "top_documents": [
+            "maintenance-review",
+            "maintenance-review",
+            "maintenance-review",
+            "training-data",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "x01",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "scores-and-alerts",
+            "scores-and-alerts",
+            "reading-provenance"
+          ]
+        },
+        {
+          "id": "x02",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "scores-and-alerts",
+            "held-out-evaluation",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "x03",
+          "top_documents": [
+            "sensor-reference",
+            "shap-explanations",
+            "asset-monitoring",
+            "shap-explanations",
+            "asset-monitoring"
+          ]
+        },
+        {
+          "id": "x04",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "reading-provenance",
+            "asset-monitoring",
+            "scores-and-alerts"
+          ]
+        },
+        {
+          "id": "x05",
+          "top_documents": [
+            "shap-explanations",
+            "shap-explanations",
+            "reading-provenance",
+            "maintenance-review",
+            "training-data"
+          ]
+        },
+        {
+          "id": "b01",
+          "top_documents": [
+            "scores-and-alerts",
+            "shap-explanations",
+            "held-out-evaluation",
+            "sensor-reference",
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "b02",
+          "top_documents": [
+            "sensor-reference",
+            "shap-explanations",
+            "shap-explanations",
+            "held-out-evaluation",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "b03",
+          "top_documents": [
+            "maintenance-review",
+            "scores-and-alerts",
+            "training-data",
+            "reading-provenance",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "b04",
+          "top_documents": [
+            "asset-monitoring",
+            "maintenance-review",
+            "scores-and-alerts",
+            "asset-monitoring",
+            "maintenance-review"
+          ]
+        },
+        {
+          "id": "o01",
+          "top_documents": [
+            "shap-explanations",
+            "training-data",
+            "sensor-reference",
+            "asset-monitoring",
+            "held-out-evaluation"
+          ]
+        },
+        {
+          "id": "o02",
+          "top_documents": [
+            "shap-explanations",
+            "reading-provenance",
+            "scores-and-alerts",
+            "maintenance-review",
+            "training-data"
+          ]
+        },
+        {
+          "id": "o03",
+          "top_documents": [
+            "sensor-reference",
+            "asset-monitoring",
+            "scores-and-alerts",
+            "asset-monitoring",
+            "sensor-reference"
+          ]
+        },
+        {
+          "id": "o04",
+          "top_documents": [
+            "asset-monitoring",
+            "training-data",
+            "maintenance-review",
+            "held-out-evaluation",
+            "training-data"
+          ]
+        }
+      ]
+    }
+  },
+  "postgresql": "17.10 (Debian 17.10-1.pgdg12+1)",
+  "pgvector": "0.8.2",
+  "indexed_documents": {
+    "asset-monitoring": {
+      "sha256": "f9313579548f68600bb9cc31854bad45241d0c5923da52c85e2d8c58fd46ae39",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "held-out-evaluation": {
+      "sha256": "c95faa670104e488f4a16a672ed0c499b62babf28c013edb2c24d37c81d15c38",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "maintenance-review": {
+      "sha256": "4a552fedb300e92d422c9a6a1146cb1263116b920aa3a68b1684b4f2d524acca",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "reading-provenance": {
+      "sha256": "d71a692326679176f8b87c8a0d91ae2b4e3f4cd2aa94ad2026897203651c01c7",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "scores-and-alerts": {
+      "sha256": "d7532594387faa127b238e2ce471c026107876721a253eb38aa020f5a71c8a37",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "sensor-reference": {
+      "sha256": "e97f9bbc5c815a15e579575a883ea9af753644754d19697085a635d59a90b47d",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "shap-explanations": {
+      "sha256": "8bf454ae52e0eeba6b52362e819395b31c42570760f73af9a846b81e594ea8eb",
+      "chunk_size": 100,
+      "overlap": 15
+    },
+    "training-data": {
+      "sha256": "cf4d4daac362fece675e64c6a3e1819f0181585ed6fa445c35479f0e954dda1d",
+      "chunk_size": 100,
+      "overlap": 15
+    }
+  }
+}

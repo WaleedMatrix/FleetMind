@@ -1,0 +1,22 @@
+FROM python:3.11-slim-bookworm@sha256:ef56ae98435cc40d8a27020b0b32a9941515acd5840f0fba34858bb34dd362d1
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app/src \
+    OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+    MALLOC_ARENA_MAX=2 PORT=8000
+
+WORKDIR /app
+COPY requirements-hosted.txt .
+RUN python -m pip install --no-cache-dir --timeout 45 -r requirements-hosted.txt \
+    && python -m pip check \
+    && python -m pip uninstall -y pip setuptools
+COPY src/fleetmind/__init__.py src/fleetmind/config.py src/fleetmind/artifacts.py src/fleetmind/hosted.py ./src/fleetmind/
+COPY src/fleetmind/api/__init__.py src/fleetmind/api/schemas.py src/fleetmind/api/inference.py ./src/fleetmind/api/
+COPY src/fleetmind/data/ ./src/fleetmind/data/
+COPY src/fleetmind/features/ ./src/fleetmind/features/
+COPY artifacts/models/xgboost_v1.joblib artifacts/models/xgboost_v1.metadata.json ./artifacts/models/
+RUN python -c "from fleetmind.artifacts import verify_artifacts; verify_artifacts()"
+USER 10001:10001
+EXPOSE 8000
+# Use a lightweight HTTP check to avoid starting another Python interpreter at 0.1 CPU.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s \
+  CMD ["bash", "-ec", "exec 3<>/dev/tcp/127.0.0.1/$PORT; printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3; read -r protocol status reason <&3; test \"$status\" = 200"]
+CMD ["python", "-m", "fleetmind.hosted"]

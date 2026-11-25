@@ -1,0 +1,132 @@
+[
+  {
+    "dashboard": "fleetmind-api",
+    "panel": "Request rate by route",
+    "result_series": 6
+  },
+  {
+    "dashboard": "fleetmind-api",
+    "panel": "Server error rate",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-api",
+    "panel": "API p95 latency",
+    "result_series": 6
+  },
+  {
+    "dashboard": "fleetmind-api",
+    "panel": "Active SSE streams",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-api",
+    "panel": "Stream closes",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-api",
+    "panel": "Synchronous prediction phases",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-copilot",
+    "panel": "Copilot outcomes",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-copilot",
+    "panel": "Provider failures",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-copilot",
+    "panel": "Copilot, provider and retrieval p95",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-copilot",
+    "panel": "Tool executions per minute",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-copilot",
+    "panel": "Tool p95",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-copilot",
+    "panel": "Provider-reported tokens",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-dependencies",
+    "panel": "PostgreSQL availability",
+    "result_series": 2
+  },
+  {
+    "dashboard": "fleetmind-dependencies",
+    "panel": "Redpanda reachability",
+    "result_series": 1
+  },
+  {
+    "dashboard": "fleetmind-dependencies",
+    "panel": "Telemetry transaction p95",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-resources",
+    "panel": "Resident memory by process",
+    "result_series": 2
+  },
+  {
+    "dashboard": "fleetmind-resources",
+    "panel": "CPU core equivalents",
+    "result_series": 2
+  },
+  {
+    "dashboard": "fleetmind-resources",
+    "panel": "Scrape target health",
+    "result_series": 2
+  },
+  {
+    "dashboard": "fleetmind-telemetry",
+    "panel": "Deliveries by stage",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-telemetry",
+    "panel": "Validation rejections",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-telemetry",
+    "panel": "Committed lag",
+    "result_series": 1
+  },
+  {
+    "dashboard": "fleetmind-telemetry",
+    "panel": "Delivery phase p95",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-workers",
+    "panel": "Worker scrape targets",
+    "result_series": 1
+  },
+  {
+    "dashboard": "fleetmind-workers",
+    "panel": "Worker availability",
+    "result_series": 1
+  },
+  {
+    "dashboard": "fleetmind-workers",
+    "panel": "Offsets per second",
+    "result_series": 0
+  },
+  {
+    "dashboard": "fleetmind-workers",
+    "panel": "Worker inference p95",
+    "result_series": 0
+  }
+]

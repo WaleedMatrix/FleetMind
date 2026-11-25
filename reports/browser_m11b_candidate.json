@@ -1,0 +1,27 @@
+{
+  "variant": "candidate",
+  "viewport_px": 1440,
+  "worker_count": 1,
+  "preloaded_assessments": 60,
+  "producer_target_rate_per_second": 50,
+  "telemetry": {
+    "seconds": 15.404965600000002,
+    "renderer_task_ms": 706.0249999999999,
+    "js_heap_mib": 17.0740966796875,
+    "long_tasks_ms": [
+      80
+    ],
+    "long_task_count": 1,
+    "received_assessments": 240,
+    "visible_rows": 60
+  },
+  "dashboard_refresh": {
+    "seconds": 0.664035100000001,
+    "renderer_task_ms": 288.0829999999999,
+    "js_heap_mib": 18.34804916381836,
+    "long_tasks_ms": [],
+    "long_task_count": 0
+  },
+  "investigation_keyboard_check": true,
+  "model_health_check": true
+}

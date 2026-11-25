@@ -1,7 +1,10 @@
 "use client";
 
+import { useEngineering } from "@/components/auth-shell";
+
 import { useState } from "react";
 import Link from "next/link";
+import { copilotHref } from "@/lib/copilot";
 import { ArrowLeft, Factory, MapPin, RefreshCw } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { assetPath, type Asset, type AssetSummary } from "@/lib/assets";
@@ -52,6 +55,7 @@ function ScoreTrend({ readings, pending, failed }: { readings: Prediction[]; pen
 }
 
 export function AssetDetail({ assetId }: { assetId: string }) {
+  const canEngineer = useEngineering();
   const [offset, setOffset] = useState(0);
   const [source, setSource] = useState<ReadingSource | "">("");
   const [revision, setRevision] = useState(0);
@@ -92,6 +96,7 @@ export function AssetDetail({ assetId }: { assetId: string }) {
           {asset.description && <p className="asset-description">{asset.description}</p>}
         </div>
         <button className="refresh-button" onClick={refresh}><RefreshCw size={15} aria-hidden="true" /> Refresh</button>
+        {canEngineer && <Link href={copilotHref(asset.asset_id)} className="copilot-link">Investigate with Copilot</Link>}
       </header>
 
       <section className="panel asset-panel asset-summary" aria-label="Monitoring summary" aria-busy={summary.pending}>
@@ -165,11 +170,11 @@ export function AssetDetail({ assetId }: { assetId: string }) {
           hasNext={(history.data?.length ?? 0) > PAGE_SIZE} onChange={setOffset} />
       </section>
 
-      <details className="panel asset-panel asset-edit">
+      {canEngineer && <details className="panel asset-panel asset-edit">
         <summary>Edit asset details</summary>
         <p className="asset-note">Registered {timestampLabel(asset.created_at, true)}. The asset ID and machine type stay fixed.</p>
         <AssetForm asset={asset} onSave={setEditedAsset} />
-      </details>
+      </details>}
     </>
   );
 }

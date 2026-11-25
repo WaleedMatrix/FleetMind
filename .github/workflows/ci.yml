@@ -1,0 +1,63 @@
+name: FleetMind validation
+on: [push, pull_request]
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.2-pg17
+        env:
+          POSTGRES_USER: fleetmind
+          POSTGRES_PASSWORD: isolated-ci
+          POSTGRES_DB: fleetmind_ci_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fleetmind -d fleetmind_ci_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      DATABASE_URL: postgresql+psycopg://fleetmind:isolated-ci@127.0.0.1:5432/fleetmind_ci_test
+      FLEETMIND_MIGRATION_TEST_DATABASE_URL: postgresql+psycopg://fleetmind:isolated-ci@127.0.0.1:5432/fleetmind_ci_test
+      OMP_NUM_THREADS: "2"
+      FLEETMIND_COPILOT_PREWARM: "0"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt -r requirements-telemetry.txt -e .
+      - run: pip check
+      - run: python -m scripts.fetch_ai4i
+      - run: python -m scripts.verify_frozen_artifacts
+      - run: ruff check .
+      - run: python -m alembic upgrade head && python -m alembic check
+      - run: python -m pytest
+      - run: python -m scripts.evaluate_copilot --output "$RUNNER_TEMP/copilot.json"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint && npm run test:proxy
+      - run: npm run build && npx tsc --noEmit
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_FLEETMIND_MODE: portfolio
+
+  portfolio-inference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f Dockerfile.portfolio -t fleetmind-portfolio .
+      - run: docker run --rm --entrypoint python fleetmind-portfolio -c "from fleetmind.hosted import app; assert len(app.routes) == 2"

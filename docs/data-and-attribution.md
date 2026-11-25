@@ -1,0 +1,9 @@
+# Data, artifacts and attribution
+
+Matzka, Stephan (2020). *AI4I 2020 Predictive Maintenance Dataset*. UCI Machine Learning Repository. DOI 10.24432/C5HS5C. UCI lists the dataset under CC BY 4.0. The 10,000 observations are synthetic. FleetMind downloads the original CSV on demand and verifies its training hash. It does not assign existing AI4I rows to arbitrary assets. [Dataset record](https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+
+The frozen trained classifier and metadata are included so clean deployments can reproduce inference. The project provides documentation of their origin, hash and training method. They are Python serialized data and must be loaded only from the reviewed source and verified digests. The release does not redistribute the original CSV, local PostgreSQL data, owner conversations, model-hub caches, or private Grafana state.
+
+The [browser captures](screenshots/README.md) document the application with fictional demo assets and lab metrics. The portfolio test conversations are scripted from checked-in test scenarios and sanitized with generated fixture identities. Model Hub MiniLM is fetched separately and pinned for optional local retrieval. See its upstream license and notices before redistributing the weights. [MiniLM model card](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+
+No project-level source license has been selected. Third-party software retains its original licenses. Dependency names and versions are in the Python manifests and frontend lockfile. Before publishing, the owner should review repository rights, model artifacts, docs and images and decide the intended permissions. Container redistributors should preserve applicable upstream notices and review the licenses of Debian, Python and the included packages.

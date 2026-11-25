@@ -1,0 +1,34 @@
+{
+  "variant": "baseline",
+  "viewport_px": 1440,
+  "worker_count": 1,
+  "preloaded_assessments": 60,
+  "producer_target_rate_per_second": 50,
+  "telemetry": {
+    "seconds": 18.617510600000003,
+    "renderer_task_ms": 1975.0359999999998,
+    "js_heap_mib": 9.920600891113281,
+    "long_tasks_ms": [
+      59,
+      85,
+      58,
+      95,
+      59,
+      108,
+      92,
+      77
+    ],
+    "long_task_count": 8,
+    "received_assessments": 240,
+    "visible_rows": 60
+  },
+  "dashboard_refresh": {
+    "seconds": 0.7530323000000062,
+    "renderer_task_ms": 334.46799999999996,
+    "js_heap_mib": 21.020389556884766,
+    "long_tasks_ms": [],
+    "long_task_count": 0
+  },
+  "investigation_keyboard_check": true,
+  "model_health_check": false
+}

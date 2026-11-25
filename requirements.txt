@@ -2,8 +2,9 @@
 numpy>=2,<2.4
 pandas>=2.2.2,<3
 scipy>=1.10.0
-scikit-learn>=1.4.2
-xgboost>=3.2.0
+scikit-learn==1.9.1
+xgboost==3.2.0
+joblib==1.6.0
 shap==0.50.0
 
 # Visualization
@@ -13,12 +14,16 @@ seaborn>=0.12.0
 # Development & Notebooks
 jupyterlab>=4.0.0
 ipykernel>=6.20.0
+setuptools==84.1.0
 
 # API & Web Framework
 fastapi>=0.100.0
 uvicorn[standard]>=0.22.0
 pydantic>=2.0.0
 python-dotenv>=1.0.0
+argon2-cffi==25.1.0
+prometheus-client==0.26.0
+psutil==7.2.2
 
 # Testing & Linting
 pytest>=7.3.0
@@ -29,3 +34,4 @@ ruff>=0.0.270
 sqlalchemy>=2.1.9
 alembic>=1.20.1
 psycopg[binary]>=3.3.9
+pgvector==0.4.2

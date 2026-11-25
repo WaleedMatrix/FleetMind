@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import "./assets.css";
 import "./model-intelligence.css";
+import "./copilot.css";
+import "./telemetry.css";
+import "./security.css";
+import "./portfolio.css";
 import "../components/alert-intelligence.css";
+import { AuthShell } from "@/components/auth-shell";
 
 export const metadata: Metadata = {
   title: "FleetMind — Operations Intelligence",
@@ -12,7 +18,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={<main className="security-pending"><p role="status">Checking access…</p></main>}>
+          <AuthShell>{children}</AuthShell>
+        </Suspense>
+      </body>
     </html>
   );
 }

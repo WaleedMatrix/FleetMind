@@ -1,20 +1,23 @@
 """FleetMind API with PostgreSQL prediction persistence."""
 
 import logging
+import os
 from contextlib import asynccontextmanager
-from pathlib import Path
+from threading import Thread
+from typing import Annotated, Literal
 
-import joblib
 from fastapi import FastAPI, HTTPException, Request
-from sqlalchemy import func, select
+from fastapi import Path as PathParam
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import SQLAlchemyError
 
-from fleetmind.api.assets import get_asset_or_404
 from fleetmind.api.assets import router as assets_router
+from fleetmind.api.copilot import router as copilot_router
+from fleetmind.api.copilot_conversations import router as conversation_router
 from fleetmind.api.dependencies import DBSession
-from fleetmind.api.inference import (
-    classify_alert,
-    to_model_frame,
-)
+from fleetmind.api.knowledge import router as knowledge_router
 from fleetmind.api.model_intelligence import load_model_intelligence
 from fleetmind.api.model_intelligence import router as model_router
 from fleetmind.api.schemas import (
@@ -26,15 +29,37 @@ from fleetmind.api.schemas import (
     PredictionResponse,
     ReadingSource,
 )
-from fleetmind.config import MODEL_VERSION, PRIMARY_THRESHOLD
+from fleetmind.api.security import router as security_router
+from fleetmind.api.telemetry import router as telemetry_router
+from fleetmind.config import MODEL_VERSION
 from fleetmind.db.analytics import get_prediction_trends
+from fleetmind.db.database import SessionLocal
 from fleetmind.db.history import prediction_history
 from fleetmind.db.models import PredictionHistory
 from fleetmind.explainability import ModelExplainer
+from fleetmind.knowledge.embeddings import get_embedder
+from fleetmind.model_monitoring import ModelHealth, model_health, read_reference
+from fleetmind.observability import (
+    DEPENDENCY,
+    RequestMetrics,
+    configure_logging,
+    configure_tracing,
+    event,
+    metrics_response,
+    stop_tracing,
+    timed,
+)
+from fleetmind.security.protect import SecurityMiddleware
+from fleetmind.security.store import dummy_hash
+from fleetmind.services.predictions import (
+    MODEL_PATH,
+    PROJECT_ROOT,
+    AssetValidationError,
+    assess,
+    load_frozen_model,
+    validate_asset,
+)
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-
-MODEL_PATH = PROJECT_ROOT / "artifacts" / "models" / f"{MODEL_VERSION}.joblib"
 logger = logging.getLogger(__name__)
 
 
@@ -42,11 +67,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Load the frozen model once at application startup."""
 
-    if not MODEL_PATH.is_file():
-        raise FileNotFoundError(f"Model artifact not found: {MODEL_PATH}")
-
-    # Load only trusted model artifacts.
-    app.state.model = joblib.load(MODEL_PATH)
+    app.state.model = load_frozen_model()
+    configure_logging()
+    tracing = configure_tracing("fleetmind-api")
+    dummy_hash()
     app.state.model_version = MODEL_VERSION
     app.state.explainer = None
     try:
@@ -56,8 +80,17 @@ async def lifespan(app: FastAPI):
     app.state.model_intelligence = load_model_intelligence(
         PROJECT_ROOT, MODEL_PATH, MODEL_VERSION, app.state.explainer
     )
+    try:
+        app.state.model_reference = read_reference()
+    except (OSError, ValueError):
+        app.state.model_reference = None
+        event("model_reference", outcome="unavailable")
 
     print(f"Loaded FleetMind model: {MODEL_VERSION}")
+    if os.getenv("FLEETMIND_COPILOT_PREWARM", "0") == "1":
+        Thread(
+            target=get_embedder().prewarm_offline, daemon=True, name="embedding-prewarm"
+        ).start()
 
     try:
         yield
@@ -66,6 +99,8 @@ async def lifespan(app: FastAPI):
         del app.state.model_intelligence
         del app.state.model_version
         del app.state.model
+        del app.state.model_reference
+        stop_tracing(tracing)
 
 
 app = FastAPI(
@@ -73,20 +108,77 @@ app = FastAPI(
     description="Machine failure classification and history API.",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+    redirect_slashes=False,
 )
+app.add_middleware(SecurityMiddleware)
+app.add_middleware(RequestMetrics)
+app.include_router(security_router)
 app.include_router(assets_router)
 app.include_router(model_router)
+app.include_router(knowledge_router)
+app.include_router(copilot_router)
+app.include_router(conversation_router)
+app.include_router(telemetry_router)
 
 
 @app.get("/health")
-def health(request: Request):
-    """Report API readiness."""
+def health():
+    return {"status": "ok"}
 
+
+def probe_database():
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        DEPENDENCY.labels("postgresql").set(0)
+    else:
+        DEPENDENCY.labels("postgresql").set(1)
+
+
+@app.get("/metrics", include_in_schema=False)
+def scrape_metrics(request: Request):
+    return metrics_response(request, probe_database)
+
+
+@app.get("/api/v1/model/health", response_model=ModelHealth)
+def get_model_health(
+    request: Request,
+    db: DBSession,
+    source: ReadingSource = "telemetry",
+    hours: Literal["24", "168", "720"] = "168",
+):
+    try:
+        return model_health(db, request.app.state.model_reference, source, int(hours))
+    except SQLAlchemyError:
+        event("model_health", outcome="unavailable", category="database")
+        return model_health(db, None, source, int(hours))
+
+
+@app.get("/api/v1/system/status")
+def system_status(request: Request):
     return {
         "status": "ok",
         "model_loaded": hasattr(request.app.state, "model"),
         "model_version": MODEL_VERSION,
     }
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    protected_input = request.url.path.startswith(("/api/v1/auth/", "/api/v1/admin/"))
+    errors = [
+        {
+            "loc": item["loc"],
+            "type": item["type"],
+            "msg": "Invalid field." if protected_input else item["msg"],
+        }
+        for item in exc.errors()
+    ]
+    return JSONResponse({"detail": errors}, status_code=422)
 
 
 @app.post(
@@ -101,41 +193,33 @@ def predict(
 ):
     """Generate and persist a machine failure prediction."""
 
-    if reading.asset_id is not None:
-        asset = get_asset_or_404(db, reading.asset_id)
-        if asset.machine_type != reading.machine_type:
-            raise HTTPException(
-                status_code=422,
-                detail="Reading machine type must match the registered asset type",
-            )
+    if request.state.principal.is_service and reading.source != "simulated":
+        request.state.auth_store.record("service_source_denied")
+        raise HTTPException(
+            403, "Service credentials may submit simulated readings only."
+        )
 
-    model = request.app.state.model
-    features = to_model_frame(reading)
-
-    score = float(model.predict_proba(features)[0, 1])
-
-    predicted_failure = score >= PRIMARY_THRESHOLD
-    alert_level = classify_alert(score)
-
-    record = PredictionHistory(
+    try:
+        validate_asset(db, reading.asset_id, reading)
+    except AssetValidationError as exc:
+        if exc.category == "missing_asset":
+            raise HTTPException(status_code=404, detail="Asset not found") from exc
+        raise HTTPException(
+            status_code=422,
+            detail="Reading machine type must match the registered asset type",
+        ) from exc
+    record = assess(
+        db,
+        request.app.state.model,
+        reading,
         asset_id=reading.asset_id,
         source=reading.source,
-        machine_type=reading.machine_type,
-        air_temperature_k=reading.air_temperature_k,
-        process_temperature_k=reading.process_temperature_k,
-        rotational_speed_rpm=reading.rotational_speed_rpm,
-        torque_nm=reading.torque_nm,
-        tool_wear_min=reading.tool_wear_min,
-        failure_score=score,
-        predicted_failure=predicted_failure,
-        alert_level=alert_level,
-        model_version=MODEL_VERSION,
     )
 
     try:
-        db.add(record)
-        db.commit()
-        db.refresh(record)
+        with timed("api_persistence"):
+            db.commit()
+            db.refresh(record)
     except Exception:
         db.rollback()
         raise
@@ -189,6 +273,18 @@ def list_predictions(
         alert_level=alert_level,
         source=source,
     )
+
+
+@app.get(
+    "/api/v1/predictions/{prediction_id}", response_model=PredictionHistoryResponse
+)
+def prediction_detail(
+    prediction_id: Annotated[int, PathParam(gt=0, le=2_147_483_647)], db: DBSession
+):
+    record = db.get(PredictionHistory, prediction_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Prediction not found.")
+    return record
 
 
 @app.get(

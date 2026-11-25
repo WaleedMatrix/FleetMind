@@ -6,8 +6,10 @@ industrial telemetry or confirmed machine failures.
 """
 
 import argparse
+import os
 import random
 import time
+from pathlib import Path
 
 import httpx
 
@@ -78,6 +80,18 @@ def main():
 
     args = parser.parse_args()
 
+    token = os.getenv("FLEETMIND_PREDICTION_TOKEN")
+    token_file = os.getenv("FLEETMIND_PREDICTION_TOKEN_FILE")
+    if not token and token_file:
+        try:
+            token = Path(token_file).read_text(encoding="ascii").strip()
+        except (OSError, UnicodeError):
+            parser.error("Could not read the configured prediction credential.")
+    if not token or len(token) != 43:
+        parser.error(
+            "Set FLEETMIND_PREDICTION_TOKEN_FILE or FLEETMIND_PREDICTION_TOKEN."
+        )
+
     if args.count < 1:
         parser.error("--count must be at least 1")
 
@@ -100,7 +114,9 @@ def main():
         "high_priority": 0,
     }
 
-    with httpx.Client(timeout=10.0) as client:
+    with httpx.Client(
+        timeout=10.0, headers={"Authorization": f"Bearer {token}"}
+    ) as client:
         for index in range(1, args.count + 1):
             reading = generate_reading(
                 rng,
@@ -130,7 +146,12 @@ def main():
 
             except (httpx.HTTPError, ValueError, KeyError) as exc:
                 failed += 1
-                print(f"[{index}/{args.count}] Request failed: {exc}")
+                code = (
+                    exc.response.status_code
+                    if isinstance(exc, httpx.HTTPStatusError)
+                    else type(exc).__name__
+                )
+                print(f"[{index}/{args.count}] Request failed ({code})")
 
             if index < args.count:
                 time.sleep(args.interval)

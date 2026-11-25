@@ -1,0 +1,19 @@
+{
+  "suite_sha256": "f62448fe063d1fa4de948247ce7811365cdecd0ff76ff893c439cfca93d5e9b7",
+  "planned_cases": 10,
+  "fixture": "synthetic local records and frozen knowledge passages",
+  "authorization": {
+    "unsigned_conversation_list_denied": true,
+    "viewer_chat_denied": true,
+    "cross_owner_read_hidden": true,
+    "cross_owner_stream_hidden": true
+  },
+  "provider_error_fixture": {
+    "provider_timeout": true,
+    "provider_rate_limited": true,
+    "provider_rejected_request": true
+  },
+  "provider_evaluation": null,
+  "live_status": "pending",
+  "pricing_usd_per_million": null
+}

@@ -1,0 +1,101 @@
+.telemetry-shell {
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at 83% 0%, #18384155, transparent 48%), var(--bg);
+}
+.telemetry-topbar .brand { padding: 0; }
+.telemetry-topbar nav { display: flex; flex-wrap: wrap; gap: clamp(10px, 2vw, 24px); }
+.telemetry-topbar nav a { display: inline-flex; align-items: center; gap: 7px; color: #aec5d8; font-size: 12px; font-weight: 700; }
+.telemetry-topbar nav a:hover { color: var(--mint); }
+.telemetry-container { max-width: 1550px; margin: auto; padding: 32px clamp(12px, 4vw, 58px); }
+.telemetry-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-bottom: 22px; }
+.telemetry-heading h1 { margin: 0; font: 800 clamp(27px, 4vw, 45px)/1.1 var(--font-display); letter-spacing: -.045em; }
+.telemetry-heading h1 span { color: #87ead8; }
+.telemetry-heading p { margin: 9px 0 0; color: #9fb9cb; line-height: 1.55; }
+.telemetry-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.telemetry-button, .telemetry-connection {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 7px 10px; min-height: 38px; background: #162738;
+  color: #d4e7f4; border: 1px solid #345062; border-radius: 8px; font-size: 12px; font-weight: 700;
+}
+.telemetry-button:hover:not(:disabled) { background: #223c4f; border-color: #5a8190; }
+.telemetry-connection[data-state="live"] { background: #163b38; color: #98f2d9; border-color: #39736b; }
+.telemetry-connection[data-state="unavailable"], .telemetry-connection[data-state="reconnecting"] { color: #ffd393; background: #382c20; border-color: #785c39; }
+.telemetry-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.telemetry-kpi { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.telemetry-kpi > div, .telemetry-health-item > span { display: flex; align-items: center; gap: 7px; color: #b8cde0; font-weight: 700; font-size: 12px; }
+.telemetry-kpi svg, .telemetry-health svg { flex-shrink: 0; color: #82dcd3; }
+.telemetry-kpi strong { font: 800 clamp(19px, 3vw, 32px)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.telemetry-kpi small, .telemetry-health-item small { color: #a0b4c6; line-height: 1.4; }
+.telemetry-health { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 12px; }
+.telemetry-health-item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 12px 15px; min-width: 0; }
+.telemetry-health-item + .telemetry-health-item { border-left: 1px solid #304253; }
+.telemetry-health-item small { flex: 1 0 100%; }
+.telemetry-health-item strong { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #c4d5e0; }
+.telemetry-health-item strong[data-state="available"] { color: #99ead3; }
+.telemetry-health-item strong[data-state="unavailable"], .telemetry-health-item strong[data-state="stale"] { color: #f0c78e; }
+.telemetry-health-item i { width: 6px; height: 6px; background: currentColor; border-radius: 50%; }
+.telemetry-section-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-top: 27px; }
+.telemetry-section-heading h2 { margin: 0 0 10px; font: 800 20px/1.2 var(--font-display); }
+.telemetry-section-heading > span { color: #b2c6d5; font-size: 12px; }
+.telemetry-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.telemetry-panel-heading { padding: 15px 14px 8px; display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.telemetry-panel-heading > div { display: flex; align-items: center; gap: 8px; }
+.telemetry-panel-heading svg { color: #8de3d7; flex-shrink: 0; }
+.telemetry-panel-heading h2 { margin: 0; font: 800 15px/1.3 var(--font-display); }
+.telemetry-panel-heading small { color: #abc1d4; }
+.telemetry-chart { height: 205px; min-width: 0; padding: 0 6px 6px 0; }
+.telemetry-chart .recharts-tooltip-wrapper { max-width: min(250px, 80%); }
+.telemetry-chart-empty { display: grid; align-items: center; text-align: center; height: 205px; margin: 0; color: #a3bccd; }
+.telemetry-counts { padding: 10px 15px; margin-top: 12px; }
+.telemetry-counts summary { cursor: pointer; font-weight: 700; padding: 3px 0; }
+.telemetry-counts p { color: #afc4d2; font-size: 12px; }
+.telemetry-counts dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; }
+.telemetry-counts dl div { padding: 9px; background: #112031; border-radius: 6px; }
+.telemetry-counts dt { color: #abc2d6; font-size: 12px; }
+.telemetry-counts dd { margin: 5px 0 0; font-weight: 700; }
+.telemetry-bottom { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(245px, 1fr); gap: 12px; margin-top: 20px; align-items: start; }
+.telemetry-controls { padding: 6px 14px 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.telemetry-controls summary, .telemetry-controls select {
+  cursor: pointer; color: #d6e8f3; background: #101e2e; border: 1px solid #3c566e; border-radius: 7px;
+  padding: 7px 10px; width: 100%; min-width: 0; min-height: 34px; overflow-wrap: anywhere;
+}
+.telemetry-controls select { width: auto; max-width: 100%; }
+.telemetry-controls > label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: #bbcfdd; font-size: 12px; }
+.telemetry-controls .asset-picker { margin-top: 7px; min-width: 0; }
+.telemetry-feed-scroll { max-height: 550px; overflow: auto; }
+.telemetry-feed-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.telemetry-feed-table th { position: sticky; top: 0; z-index: 1; background: #172838; color: #bccfe0; font-size: 11px; text-align: left; }
+.telemetry-feed-table :is(th, td) { padding: 8px 10px; border-bottom: 1px solid #293d50; overflow-wrap: anywhere; }
+.telemetry-feed-table td { color: #d1e1ec; font-size: 12px; }
+.telemetry-feed-table th:first-child { width: 29%; }
+.telemetry-record { display: grid; gap: 3px; text-align: left; padding: 4px; background: none; border: 0; color: #9ef0df; }
+.telemetry-record span { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
+.telemetry-record:hover span { text-decoration: underline; }
+.telemetry-record small { color: #a6bed1; white-space: normal; word-break: break-word; }
+.telemetry-score, .telemetry-event-id { font-family: ui-monospace, monospace; }
+.telemetry-event-id { overflow-wrap: anywhere; }
+.telemetry-feed-empty, .telemetry-message { margin: 0; padding: 13px 15px; color: #b9cddd; line-height: 1.55; }
+.telemetry-dead-list { list-style: none; padding: 0 12px 12px; margin: 0; max-height: 530px; overflow: auto; }
+.telemetry-dead-list li { display: grid; gap: 5px; padding: 11px 4px; border-bottom: 1px solid #32475a; }
+.telemetry-dead-list strong { color: #f3c495; }
+.telemetry-dead-list time, .telemetry-dead-list code, .telemetry-dead-list span { font-size: 11px; color: #b4c9d8; overflow-wrap: anywhere; }
+@media (max-width: 1000px) {
+  .telemetry-charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .telemetry-charts > :last-child { grid-column: 1 / -1; }
+  .telemetry-bottom { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .telemetry-topbar { padding: 0 12px; gap: 12px; }
+  .telemetry-topbar nav a { font-size: 11px; }
+  .telemetry-topbar nav svg { display: none; }
+  .telemetry-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .telemetry-kpi { padding: 12px; }
+  .telemetry-kpi > div { align-items: flex-start; }
+  .telemetry-health { grid-template-columns: minmax(0, 1fr); }
+  .telemetry-health-item + .telemetry-health-item { border-left: 0; border-top: 1px solid #304253; }
+  .telemetry-charts { grid-template-columns: minmax(0, 1fr); }
+  .telemetry-feed-table :is(th, td):nth-child(2), .telemetry-feed-table :is(th, td):last-child { display: none; }
+  .telemetry-feed-table th:first-child { width: 45%; }
+  .telemetry-feed-table th:nth-child(3) { width: 20%; }
+  .telemetry-feed-table :is(th, td) { padding: 7px 6px; }
+}

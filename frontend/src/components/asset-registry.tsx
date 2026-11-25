@@ -1,6 +1,9 @@
 "use client";
 
+import { useEngineering } from "@/components/auth-shell";
+
 import { useState } from "react";
+import { PORTFOLIO } from "@/lib/profile";
 import Link from "next/link";
 import { ChevronRight, Factory, MapPin } from "lucide-react";
 import { assetPath, assetSearchPath, type Asset, type MachineType } from "@/lib/assets";
@@ -11,6 +14,7 @@ import { AssetPagination } from "./asset-pagination";
 const PAGE_SIZE = 8;
 
 export function AssetRegistry() {
+  const canEngineer = useEngineering();
   const [query, setQuery] = useState("");
   const [type, setType] = useState<MachineType | "">("");
   const [offset, setOffset] = useState(0);
@@ -24,9 +28,9 @@ export function AssetRegistry() {
   return (
     <>
       <header className="page-heading">
-        <div><h1>Asset <span>intelligence.</span></h1><p>Register equipment and inspect its recorded assessments.</p></div>
+        <div><h1>Asset <span>intelligence.</span></h1><p>{PORTFOLIO ? "Inspect fictional assets and their recorded simulator assessments." : "Register equipment and inspect its recorded assessments."}</p></div>
       </header>
-      <section className="asset-registry-grid" aria-label="Asset registry">
+      <section className={canEngineer ? "asset-registry-grid" : ""} aria-label="Asset registry">
         <div className="panel asset-panel">
           <h2>Asset registry</h2>
           <div className="asset-toolbar">
@@ -66,12 +70,12 @@ export function AssetRegistry() {
           <AssetPagination offset={offset} size={PAGE_SIZE}
             hasNext={(data?.length ?? 0) > PAGE_SIZE} onChange={setOffset} />
         </div>
-        <div className="panel asset-panel asset-registration">
+        {canEngineer && <div className="panel asset-panel asset-registration">
           <h2>Register an asset</h2>
           <p className="asset-note">Use the equipment’s asset ID and machine type. These fields stay fixed across assessments.</p>
           <AssetForm onSave={(asset) => { setRegistered(asset); setRevision((value) => value + 1); }} />
           {registered && <Link className="asset-inline-link" href={`/${assetPath(registered.asset_id)}`}>Open {registered.display_name} →</Link>}
-        </div>
+        </div>}
       </section>
     </>
   );

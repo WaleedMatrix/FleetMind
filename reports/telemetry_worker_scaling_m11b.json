@@ -1,0 +1,348 @@
+{
+  "seconds_requested": 15,
+  "durable_predictions": 2400,
+  "cases": [
+    {
+      "case": "1w-60",
+      "workers": 1,
+      "partitions": 6,
+      "target_events_per_second": 60,
+      "events": 900,
+      "producer_events_per_second": 55.542,
+      "consumer_events_per_second": 17.001341216921176,
+      "wall_seconds_through_last_commit": 52.9369999999908,
+      "processed_by_worker": [
+        900
+      ],
+      "max_sampled_worker_lag": 703,
+      "final_group_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 900,
+          "p50": 13.624,
+          "p95": 20.853,
+          "p99": 26.301
+        },
+        "database_ms": {
+          "samples": 900,
+          "p50": 27.854,
+          "p95": 62.836,
+          "p99": 170.499
+        },
+        "observation_to_commit_ms": {
+          "samples": 900,
+          "p50": 20073.288,
+          "p95": 35560.368,
+          "p99": 36373.613
+        },
+        "processing_ms": {
+          "samples": 900,
+          "p50": 48.125,
+          "p95": 101.546,
+          "p99": 225.914
+        }
+      },
+      "phases": {
+        "feature_preparation": {
+          "samples": 900,
+          "mean_ms": 1.0855303330107644
+        },
+        "kafka_poll": {
+          "samples": 908,
+          "mean_ms": 2.499445594887845
+        },
+        "model_inference": {
+          "samples": 900,
+          "mean_ms": 12.980906110654663
+        },
+        "offset_acknowledgement": {
+          "samples": 900,
+          "mean_ms": 7.5033403334641156
+        },
+        "telemetry_database": {
+          "samples": 900,
+          "mean_ms": 34.80480344427633
+        },
+        "telemetry_decode": {
+          "samples": 900,
+          "mean_ms": 0.11796266686158358
+        },
+        "telemetry_delivery": {
+          "samples": 900,
+          "mean_ms": 57.82210211088467
+        },
+        "telemetry_serialization": {
+          "samples": 900,
+          "mean_ms": 0.08902644441049132
+        },
+        "telemetry_transaction": {
+          "samples": 900,
+          "mean_ms": 49.584393777703454
+        },
+        "worker_pool_checkout": {
+          "samples": 900,
+          "mean_ms": 3.6506790002911456
+        }
+      },
+      "sum_of_per_worker_peak_rss_mib": 198.3828125,
+      "worker_cpu_seconds_sampled": 23.0
+    },
+    {
+      "case": "1w-burst",
+      "workers": 1,
+      "partitions": 6,
+      "target_events_per_second": null,
+      "events": 300,
+      "producer_events_per_second": 112.275,
+      "consumer_events_per_second": 19.02828872258118,
+      "wall_seconds_through_last_commit": 15.765999999988708,
+      "processed_by_worker": [
+        300
+      ],
+      "max_sampled_worker_lag": 252,
+      "final_group_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 300,
+          "p50": 12.534,
+          "p95": 16.767,
+          "p99": 20.859
+        },
+        "database_ms": {
+          "samples": 300,
+          "p50": 27.186,
+          "p95": 35.761,
+          "p99": 150.812
+        },
+        "observation_to_commit_ms": {
+          "samples": 300,
+          "p50": 6060.392,
+          "p95": 12498.262,
+          "p99": 12964.357
+        },
+        "processing_ms": {
+          "samples": 300,
+          "p50": 45.868,
+          "p95": 61.887,
+          "p99": 182.641
+        }
+      },
+      "phases": {
+        "feature_preparation": {
+          "samples": 300,
+          "mean_ms": 0.9617666667812349
+        },
+        "kafka_poll": {
+          "samples": 306,
+          "mean_ms": 5.657798693183615
+        },
+        "model_inference": {
+          "samples": 300,
+          "mean_ms": 11.909031666824982
+        },
+        "offset_acknowledgement": {
+          "samples": 300,
+          "mean_ms": 6.43562800056922
+        },
+        "telemetry_database": {
+          "samples": 300,
+          "mean_ms": 29.905222999562586
+        },
+        "telemetry_decode": {
+          "samples": 300,
+          "mean_ms": 0.10704766667913646
+        },
+        "telemetry_delivery": {
+          "samples": 300,
+          "mean_ms": 50.50648033313337
+        },
+        "telemetry_serialization": {
+          "samples": 300,
+          "mean_ms": 0.08154299925081432
+        },
+        "telemetry_transaction": {
+          "samples": 300,
+          "mean_ms": 43.39976699954908
+        },
+        "worker_pool_checkout": {
+          "samples": 300,
+          "mean_ms": 3.305470666916032
+        }
+      },
+      "sum_of_per_worker_peak_rss_mib": 197.546875,
+      "worker_cpu_seconds_sampled": 7.546875
+    },
+    {
+      "case": "2w-60",
+      "workers": 2,
+      "partitions": 6,
+      "target_events_per_second": 60,
+      "events": 900,
+      "producer_events_per_second": 60.0,
+      "consumer_events_per_second": 41.587726999670274,
+      "wall_seconds_through_last_commit": 21.64100000000326,
+      "processed_by_worker": [
+        450,
+        450
+      ],
+      "max_sampled_worker_lag": 139,
+      "final_group_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 900,
+          "p50": 12.495,
+          "p95": 16.232,
+          "p99": 22.677
+        },
+        "database_ms": {
+          "samples": 900,
+          "p50": 25.951,
+          "p95": 31.9,
+          "p99": 41.427
+        },
+        "observation_to_commit_ms": {
+          "samples": 900,
+          "p50": 3579.323,
+          "p95": 6382.326,
+          "p99": 6579.874
+        },
+        "processing_ms": {
+          "samples": 900,
+          "p50": 44.918,
+          "p95": 53.796,
+          "p99": 69.484
+        }
+      },
+      "phases": {
+        "feature_preparation": {
+          "samples": 900,
+          "mean_ms": 0.9486749999147529
+        },
+        "kafka_poll": {
+          "samples": 938,
+          "mean_ms": 10.728015885160275
+        },
+        "model_inference": {
+          "samples": 900,
+          "mean_ms": 11.697136444288642
+        },
+        "offset_acknowledgement": {
+          "samples": 900,
+          "mean_ms": 6.068249666536253
+        },
+        "telemetry_database": {
+          "samples": 900,
+          "mean_ms": 26.566629111200907
+        },
+        "telemetry_decode": {
+          "samples": 900,
+          "mean_ms": 0.10729722219467577
+        },
+        "telemetry_delivery": {
+          "samples": 900,
+          "mean_ms": 46.58932733328483
+        },
+        "telemetry_serialization": {
+          "samples": 900,
+          "mean_ms": 0.08422277785333183
+        },
+        "telemetry_transaction": {
+          "samples": 900,
+          "mean_ms": 39.855873222711836
+        },
+        "worker_pool_checkout": {
+          "samples": 900,
+          "mean_ms": 2.598897111391933
+        }
+      },
+      "sum_of_per_worker_peak_rss_mib": 395.1640625,
+      "worker_cpu_seconds_sampled": 21.71875
+    },
+    {
+      "case": "2w-burst",
+      "workers": 2,
+      "partitions": 6,
+      "target_events_per_second": null,
+      "events": 300,
+      "producer_events_per_second": 97.975,
+      "consumer_events_per_second": 37.65060240966936,
+      "wall_seconds_through_last_commit": 7.967999999993481,
+      "processed_by_worker": [
+        150,
+        150
+      ],
+      "max_sampled_worker_lag": 95,
+      "final_group_lag": 0,
+      "latency_ms": {
+        "inference_ms": {
+          "samples": 300,
+          "p50": 12.606,
+          "p95": 16.22,
+          "p99": 113.749
+        },
+        "database_ms": {
+          "samples": 300,
+          "p50": 26.091,
+          "p95": 34.891,
+          "p99": 63.336
+        },
+        "observation_to_commit_ms": {
+          "samples": 300,
+          "p50": 2331.64,
+          "p95": 4659.536,
+          "p99": 4853.907
+        },
+        "processing_ms": {
+          "samples": 300,
+          "p50": 45.498,
+          "p95": 57.939,
+          "p99": 156.41
+        }
+      },
+      "phases": {
+        "feature_preparation": {
+          "samples": 300,
+          "mean_ms": 0.9307303337360887
+        },
+        "kafka_poll": {
+          "samples": 340,
+          "mean_ms": 30.786891764557154
+        },
+        "model_inference": {
+          "samples": 300,
+          "mean_ms": 12.822934999809755
+        },
+        "offset_acknowledgement": {
+          "samples": 300,
+          "mean_ms": 6.38525866738443
+        },
+        "telemetry_database": {
+          "samples": 300,
+          "mean_ms": 27.732098332877893
+        },
+        "telemetry_decode": {
+          "samples": 300,
+          "mean_ms": 0.11652399989543483
+        },
+        "telemetry_delivery": {
+          "samples": 300,
+          "mean_ms": 49.24688533312292
+        },
+        "telemetry_serialization": {
+          "samples": 300,
+          "mean_ms": 0.08854733299813233
+        },
+        "telemetry_transaction": {
+          "samples": 300,
+          "mean_ms": 42.168465666278884
+        },
+        "worker_pool_checkout": {
+          "samples": 300,
+          "mean_ms": 2.601471999611628
+        }
+      },
+      "sum_of_per_worker_peak_rss_mib": 394.671875,
+      "worker_cpu_seconds_sampled": 7.4375
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "runtime": "Grafana 13.2.1 and Prometheus 3.16.0 on Windows Docker Desktop",
+  "grafana_dashboards": [
+    "fleetmind-api",
+    "fleetmind-copilot",
+    "fleetmind-dependencies",
+    "fleetmind-resources",
+    "fleetmind-telemetry",
+    "fleetmind-workers"
+  ],
+  "grafana_datasource_targets": {
+    "fleetmind-api": 1,
+    "fleetmind-worker": 1
+  },
+  "anonymous_search_denied": true,
+  "default_credentials_denied": true,
+  "prometheus_targets_up_during_scrape_test": [
+    "fleetmind-api",
+    "fleetmind-worker"
+  ],
+  "backend_broker_disabled_smoke": "All four protected status, dashboard, telemetry, and model-health routes returned 200",
+  "otlp_local_export": {
+    "spans": 41,
+    "batches": 2,
+    "sample_rate": 0.25,
+    "attempted_spans": 160
+  },
+  "mlflow_local_tracking": [
+    "retrospective_import",
+    "observed_validation_run"
+  ],
+  "grafana_edge_viewport_widths_px": [
+    1440,
+    320
+  ],
+  "validated_grafana_promql_panels": 26
+}

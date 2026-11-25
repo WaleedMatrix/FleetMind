@@ -67,8 +67,8 @@ def test_asset_migration(has_legacy_table):
 
             config = Config(CONFIG)
             config.attributes["connection"] = connection
-            command.upgrade(config, "head")
-            command.upgrade(config, "head")
+            command.upgrade(config, "0002_asset_intelligence")
+            command.upgrade(config, "0002_asset_intelligence")
 
             assert {"assets", "prediction_history"} <= set(
                 inspect(connection).get_table_names(schema=schema)

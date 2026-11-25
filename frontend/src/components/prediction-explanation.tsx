@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
+import { PORTFOLIO } from "@/lib/profile";
 import { marginText, type ExplanationFeature, type PredictionExplanation as Explanation } from "@/lib/model-intelligence";
 import { useFleetMindQuery } from "@/lib/use-fleetmind-query";
 
@@ -41,7 +42,7 @@ function ExplanationCharts({ data }: { data: Explanation }) {
         <div><dt>Final raw margin</dt><dd>{marginText(data.raw_output)}</dd></div>
         <div><dt>Saved score</dt><dd>{marginText(data.failure_score)}</dd></div>
       </dl>
-      <p className="model-note">SHAP contributions add to the raw margin in log-odds units. The model maps that margin to the saved, uncalibrated score.</p>
+      <p className="model-note">{PORTFOLIO && "Precomputed from this simulated reading. "}SHAP contributions add to the raw margin in log-odds units. The model maps that margin to the saved, uncalibrated score.</p>
       <div className="period-switch model-chart-switch" role="group" aria-label="Explanation chart">
         <button type="button" className={view === "contributions" ? "selected" : ""} aria-pressed={view === "contributions"}
           onClick={() => setView("contributions")}>Contributions</button>

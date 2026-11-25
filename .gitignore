@@ -31,10 +31,23 @@ artifacts/*
 *.joblib
 *.pt
 *.pth
+!artifacts/models/
+artifacts/models/*
+!artifacts/models/xgboost_v1.joblib
+!artifacts/models/xgboost_v1.metadata.json
 
 # Logs
 logs/
 *.log
+*.dump
+*.sqlite
+*.sqlite3
+*.token
+*.dpapi
+*.pem
+*.pfx
+*.p12
+*.key
 
 # Testing
 .pytest_cache/

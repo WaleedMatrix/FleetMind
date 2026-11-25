@@ -4,7 +4,6 @@ import json
 from contextlib import contextmanager
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -39,7 +38,7 @@ PRESS = {
 
 
 @pytest.fixture
-def client():
+def client(auth_client):
     """Provide a real API client with an isolated database."""
 
     engine = create_engine(
@@ -62,7 +61,7 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
 
     try:
-        with TestClient(app) as test_client:
+        with auth_client(testing_session) as test_client:
             yield test_client
     finally:
         app.dependency_overrides.clear()
@@ -75,7 +74,8 @@ def test_health_endpoint(client):
 
     assert response.status_code == 200
 
-    data = response.json()
+    assert response.json() == {"status": "ok"}
+    data = client.get("/api/v1/system/status").json()
 
     assert data["status"] == "ok"
     assert data["model_loaded"] is True

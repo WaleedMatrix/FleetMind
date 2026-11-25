@@ -1,0 +1,19 @@
+{
+  "baseline": {
+    "sentence-transformers": "5.2.0",
+    "transformers": "4.57.6",
+    "torch": "2.9.1+cpu",
+    "tokenizers": "0.22.2"
+  },
+  "candidate": {
+    "sentence-transformers": "5.6.0",
+    "transformers": "5.17.0",
+    "torch": "2.9.1+cpu",
+    "tokenizers": "0.23.3"
+  },
+  "identity": "4c0759d3e01f71df2460a0b9deb440fbd0f0ab0f97db3ff069cfa26357f8f3e0",
+  "vectors": 50,
+  "dimensions": 384,
+  "max_absolute_difference": 0.0,
+  "minimum_cosine_similarity": 0.9999999999999998
+}

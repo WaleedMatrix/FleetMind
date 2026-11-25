@@ -1,0 +1,10 @@
+[
+  {"file":"training-data.md","id":"training-data","title":"Training data and operating limits","category":"model","source_kind":"project","source_ref":"docs/knowledge/training-data.md"},
+  {"file":"scores-and-alerts.md","id":"scores-and-alerts","title":"Scores and alert thresholds","category":"model","source_kind":"model_metadata","source_ref":"artifacts/models/xgboost_v1.metadata.json"},
+  {"file":"held-out-evaluation.md","id":"held-out-evaluation","title":"Frozen held-out evaluation","category":"model","source_kind":"model_metadata","source_ref":"reports/final_test_metrics.json"},
+  {"file":"sensor-reference.md","id":"sensor-reference","title":"Sensor and feature terminology","category":"sensors","source_kind":"project","source_ref":"docs/knowledge/sensor-reference.md"},
+  {"file":"asset-monitoring.md","id":"asset-monitoring","title":"Registered asset monitoring","category":"assets","source_kind":"project","source_ref":"docs/knowledge/asset-monitoring.md"},
+  {"file":"reading-provenance.md","id":"reading-provenance","title":"Reading provenance","category":"assets","source_kind":"project","source_ref":"docs/knowledge/reading-provenance.md"},
+  {"file":"shap-explanations.md","id":"shap-explanations","title":"Interpreting SHAP explanations","category":"explainability","source_kind":"project","source_ref":"docs/knowledge/shap-explanations.md"},
+  {"file":"maintenance-review.md","id":"maintenance-review","title":"General maintenance-review guidance","category":"maintenance","source_kind":"general_guidance","source_ref":"docs/knowledge/maintenance-review.md"}
+]

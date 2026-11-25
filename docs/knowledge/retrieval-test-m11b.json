@@ -1,0 +1,112 @@
+[
+  {
+    "id": "t01",
+    "query": "How large was the held-back population used to score the frozen classifier?",
+    "relevant": [
+      "held-out-evaluation"
+    ]
+  },
+  {
+    "id": "t02",
+    "query": "These rows share machine type M. Can I treat them as an individual compressor's history?",
+    "relevant": [
+      "training-data",
+      "asset-monitoring"
+    ]
+  },
+  {
+    "id": "t03",
+    "query": "Which temperature is subtracted to obtain the derived gap?",
+    "relevant": [
+      "sensor-reference"
+    ]
+  },
+  {
+    "id": "t04",
+    "query": "Are claims that a caller is actual equipment independently checked?",
+    "relevant": [
+      "reading-provenance"
+    ]
+  },
+  {
+    "id": "t05",
+    "query": "Changing an asset label seems to alter earlier events. Which asset fields are fixed?",
+    "relevant": [
+      "asset-monitoring"
+    ]
+  },
+  {
+    "id": "t06",
+    "query": "Can the signed bar explain what caused the physical fault?",
+    "relevant": [
+      "shap-explanations"
+    ]
+  },
+  {
+    "id": "t07",
+    "query": "Should I immediately replace a component after a high-priority flag?",
+    "relevant": [
+      "maintenance-review",
+      "scores-and-alerts"
+    ]
+  },
+  {
+    "id": "t08",
+    "query": "What metric summarizes ranking under rare positives?",
+    "relevant": [
+      "held-out-evaluation"
+    ]
+  },
+  {
+    "id": "t09",
+    "query": "Does 0.61 mean 61 in 100 similar machines will fail?",
+    "relevant": [
+      "scores-and-alerts",
+      "training-data"
+    ]
+  },
+  {
+    "id": "t10",
+    "query": "What should I compare with an outlier torque before deciding on next steps?",
+    "relevant": [
+      "maintenance-review",
+      "sensor-reference"
+    ]
+  },
+  {
+    "id": "t11",
+    "query": "Why is there a starting value before the feature bars are added?",
+    "relevant": [
+      "shap-explanations"
+    ]
+  },
+  {
+    "id": "t12",
+    "query": "Where do I find recorded readings for an explicitly registered machine?",
+    "relevant": [
+      "asset-monitoring"
+    ]
+  },
+  {
+    "id": "t13",
+    "query": "If origin is unknown, should I classify the event as either manual or live?",
+    "relevant": [
+      "reading-provenance"
+    ]
+  },
+  {
+    "id": "t14",
+    "query": "Which ISO flange dimensions apply to part QX-75200?",
+    "relevant": []
+  },
+  {
+    "id": "t15",
+    "query": "What is the fleet owner's bank account routing information?",
+    "relevant": []
+  },
+  {
+    "id": "t16",
+    "query": "Stock trading settlement dates for my exchange?",
+    "relevant": []
+  }
+]

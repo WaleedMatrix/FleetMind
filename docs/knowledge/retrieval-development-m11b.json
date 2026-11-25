@@ -1,0 +1,85 @@
+[
+  {
+    "id": "d01",
+    "query": "What raw columns do I have to enter before inference?",
+    "relevant": [
+      "sensor-reference"
+    ]
+  },
+  {
+    "id": "d02",
+    "query": "Does the risk classifier estimate the number of operating hours left?",
+    "relevant": [
+      "training-data",
+      "scores-and-alerts"
+    ]
+  },
+  {
+    "id": "d03",
+    "query": "A new machine was registered yesterday. Will its history contain the old unassigned readings?",
+    "relevant": [
+      "asset-monitoring",
+      "reading-provenance"
+    ]
+  },
+  {
+    "id": "d04",
+    "query": "Explain the low medium and high type categories without implying fleet identity.",
+    "relevant": [
+      "sensor-reference",
+      "training-data"
+    ]
+  },
+  {
+    "id": "d05",
+    "query": "Would a contribution below zero push this assessment up or down?",
+    "relevant": [
+      "shap-explanations"
+    ]
+  },
+  {
+    "id": "d06",
+    "query": "Where should I confirm an actual fault before assigning maintenance?",
+    "relevant": [
+      "maintenance-review"
+    ]
+  },
+  {
+    "id": "d07",
+    "query": "Do threshold results use the data retained outside training?",
+    "relevant": [
+      "held-out-evaluation"
+    ]
+  },
+  {
+    "id": "d08",
+    "query": "How should I interpret the score between review and high priority?",
+    "relevant": [
+      "scores-and-alerts"
+    ]
+  },
+  {
+    "id": "d09",
+    "query": "Could the source label here have been set by a simulator?",
+    "relevant": [
+      "reading-provenance"
+    ]
+  },
+  {
+    "id": "d10",
+    "query": "Explain the gap between process and air temperatures.",
+    "relevant": [
+      "sensor-reference"
+    ]
+  },
+  {
+    "id": "d11",
+    "query": "What is the approved lubricant concentration for a named hydraulic pump?",
+    "relevant": []
+  },
+  {
+    "id": "d12",
+    "query": "Why did my apartment Wi-Fi lose internet last night?",
+    "relevant": []
+  }
+]

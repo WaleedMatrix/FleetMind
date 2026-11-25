@@ -1,0 +1,57 @@
+{
+  "browser": "Microsoft Edge headless, production Next.js",
+  "broker": "Redpanda 25.3.11",
+  "burst": {
+    "offered_events_per_s": 50,
+    "events": 100,
+    "displayed_samples": 100,
+    "observation_window_ms": 10189,
+    "commit_to_dom_ms": {
+      "p50": 462,
+      "p95": 688,
+      "p99": 714
+    },
+    "browser_task_ms": 1167,
+    "browser_long_tasks": [
+      289,
+      330
+    ],
+    "browser_used_js_heap_mib": 14.4,
+    "api_rss_before_mib": 271,
+    "api_rss_after_mib": 274
+  },
+  "replay": {
+    "pause_missed_events": 3,
+    "pause_resume_ms": 407,
+    "blocked_missed_events": 2,
+    "unblock_to_replay_ms": 2720
+  },
+  "dashboard": {
+    "burst_events": 20,
+    "coalesced_summary_refreshes": 2,
+    "fallback_poll_ms": 29992
+  },
+  "integrity": {
+    "confirmed_assessments": 127,
+    "acknowledged_offsets": 128,
+    "invalid": 1,
+    "dead_lettered": 1,
+    "historical_manual_prediction_preserved": true,
+    "viewport_320_px": true
+  },
+  "broker_off_profile": {
+    "broker_disabled": true,
+    "idle_streams": 8,
+    "seconds_sampled": 10.36,
+    "metrics_requests": 20,
+    "metrics_roundtrip_ms": {
+      "p50": 41.56,
+      "p95": 59.14
+    },
+    "api_cpu_seconds": 1.516,
+    "api_rss_before_mib": 271.0,
+    "api_rss_during_mib": 272.9,
+    "last_event_id_replay_count": 3,
+    "heartbeat_received": true
+  }
+}
